@@ -1,0 +1,40 @@
+# Ambiente
+.env
+.venv/
+venv/
+env/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# Testes / cobertura
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+
+# Ruff
+.ruff_cache/
+
+# Banco de dados local (se usado fora do docker)
+*.sqlite3
+*.db
+
+# Docker
+*.log
+
+# Editor / SO
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Migrations geradas localmente durante desenvolvimento experimental
+# (comente esta linha se quiser versionar migrations)
+# migrations/versions/*.pyc
