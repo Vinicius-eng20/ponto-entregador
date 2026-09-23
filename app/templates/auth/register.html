@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Criar conta — Ponto do Entregador{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center align-items-center mt-4">
+  <div class="col-12 col-sm-8 col-md-5 col-lg-4">
+    <h1 class="h3 mb-4 text-center">Criar conta</h1>
+    <form method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+
+      <div class="mb-3">
+        <label for="name" class="form-label">Nome</label>
+        <input
+          type="text"
+          class="form-control"
+          id="name"
+          name="name"
+          value="{{ name or '' }}"
+          required
+          autofocus
+        />
+      </div>
+      <div class="mb-3">
+        <label for="email" class="form-label">E-mail</label>
+        <input
+          type="email"
+          class="form-control"
+          id="email"
+          name="email"
+          value="{{ email or '' }}"
+          required
+        />
+      </div>
+      <div class="mb-3">
+        <label for="password" class="form-label">Senha</label>
+        <input type="password" class="form-control" id="password" name="password" required minlength="6" />
+      </div>
+      <div class="mb-3">
+        <label for="password_confirm" class="form-label">Confirmar senha</label>
+        <input
+          type="password"
+          class="form-control"
+          id="password_confirm"
+          name="password_confirm"
+          required
+          minlength="6"
+        />
+      </div>
+      <button type="submit" class="btn btn-primary w-100">Criar conta</button>
+    </form>
+    <p class="text-center mt-3">
+      Já tem conta? <a href="{{ url_for('auth.login') }}">Entrar</a>
+    </p>
+  </div>
+</div>
+{% endblock %}

@@ -34,6 +34,14 @@ def create_app(config_object=None):
 
 
 def register_blueprints(app):
-    # Os blueprints de auth, páginas e API serão adicionados nas próximas fases
-    # (auth.py, pages.py, clock.py, records.py, dashboard.py em app/routes/).
-    pass
+    from app.routes.auth import auth_bp
+    from app.routes.clock import clock_bp
+    from app.routes.pages import pages_bp
+    from app.routes.records import records_bp
+
+    app.register_blueprint(auth_bp)
+    app.register_blueprint(pages_bp)
+    app.register_blueprint(clock_bp)
+    app.register_blueprint(records_bp)
+
+    # O blueprint de dashboard (app/routes/dashboard.py) será adicionado na Fase 3.

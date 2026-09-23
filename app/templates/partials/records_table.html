@@ -1,0 +1,42 @@
+<div class="table-responsive">
+  <table class="table table-striped align-middle" id="tabela-registros">
+    <thead>
+      <tr>
+        <th>Data</th>
+        <th>Dia da semana</th>
+        <th>Entrada</th>
+        <th>Saída</th>
+        <th>Ganhos</th>
+        <th>Custos</th>
+        <th>Horas trabalhadas</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for record in records %}
+      <tr data-id="{{ record.id }}">
+        <td>{{ record.date.strftime("%d/%m/%Y") }}</td>
+        <td>{{ record.weekday_name }}</td>
+        <td>{{ record.start_time.strftime("%H:%M") }}</td>
+        <td>{{ record.end_time.strftime("%H:%M") if record.end_time else "—" }}</td>
+        <td>{{ "R$ %.2f"|format(record.earnings) if record.earnings is not none else "—" }}</td>
+        <td>{{ "R$ %.2f"|format(record.costs) if record.costs is not none else "—" }}</td>
+        <td>{{ record.worked_hours_formatted or "—" }}</td>
+        <td>
+          <button
+            type="button"
+            class="btn btn-sm btn-outline-danger btn-excluir-registro"
+            data-id="{{ record.id }}"
+          >
+            Excluir
+          </button>
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="8" class="text-center text-muted">Nenhum registro ainda.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>

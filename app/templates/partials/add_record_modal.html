@@ -1,0 +1,59 @@
+<div class="modal fade" id="modalAddRecord" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Adicionar registro</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="form-add-record">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="add-date" class="form-label">Data</label>
+            <input type="date" class="form-control" id="add-date" name="date" required />
+          </div>
+          <div class="row">
+            <div class="col-6 mb-3">
+              <label for="add-start" class="form-label">Entrada</label>
+              <input type="time" class="form-control" id="add-start" name="start_time" required />
+            </div>
+            <div class="col-6 mb-3">
+              <label for="add-end" class="form-label">Saída</label>
+              <input type="time" class="form-control" id="add-end" name="end_time" required />
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-6 mb-3">
+              <label for="add-earnings" class="form-label">Ganhos (R$)</label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                class="form-control"
+                id="add-earnings"
+                name="earnings"
+                required
+              />
+            </div>
+            <div class="col-6 mb-3">
+              <label for="add-costs" class="form-label">Custos (R$)</label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                class="form-control"
+                id="add-costs"
+                name="costs"
+                required
+              />
+            </div>
+          </div>
+          <div id="add-record-erro" class="alert alert-danger d-none" role="alert"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Salvar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

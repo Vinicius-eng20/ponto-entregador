@@ -1,0 +1,16 @@
+body {
+  background-color: #f8f9fa;
+}
+
+#ponto-data-atual {
+  font-weight: 600;
+}
+
+.card {
+  border: none;
+  border-radius: 1rem;
+}
+
+.alert {
+  margin-top: 1.5rem;
+}

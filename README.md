@@ -2,7 +2,7 @@
 
 Aplicação web para entregadores registrarem **horas trabalhadas**, **ganhos** e **custos** diários, funcionando como um ponto eletrônico, com tabela de registros e dashboard interativo.
 
-Este projeto substitui um fluxo anterior (formulário no Tally → Google Sheets → dashboard simples) por uma aplicação única, com login por usuário e cada pessoa vendo apenas os próprios dados.
+Este projeto substitui o fluxo atual (formulário no Tally → Google Sheets → dashboard simples) por uma aplicação única, com login por usuário e cada pessoa vendo apenas os próprios dados.
 
 ---
 
@@ -266,6 +266,32 @@ docker compose exec web flask db migrate -m "mensagem"
 docker compose exec web flask db upgrade
 ```
 
+### Testando o fluxo da Fase 2 manualmente
+
+Com o `docker compose up --build` no ar (veja acima), acesse `http://localhost:5000` e:
+
+1. Clique em **"Cadastre-se"**, crie uma conta (nome, e-mail, senha) — o login é feito automaticamente após o cadastro.
+2. Na home, clique em **"Registrar entrada"**. O botão muda para **"Registrar saída"**.
+3. Clique em **"Registrar saída"**. Aparece o formulário de ganhos e custos.
+4. Preencha e envie. A página recarrega, a linha aparece na tabela de **Registros** (com dia da semana e horas trabalhadas já calculados) e o botão volta a ser **"Registrar entrada"**.
+5. Clique no botão **(+)** ao lado da data para adicionar um registro de outro dia (data, entrada, saída, ganhos e custos).
+6. Use o botão **"Excluir"** na tabela para remover um registro.
+7. Feche a aba e volte a abrir `http://localhost:5000`: o estado do ponto (aberto, aguardando totais ou ocioso) é recalculado a partir do banco, não se perde ao recarregar a página.
+
+Se preferir testar pela API diretamente (por exemplo com `curl` ou Postman), os endpoints relevantes desta fase são:
+
+- `GET /api/clock/status`
+- `POST /api/clock/in`
+- `POST /api/clock/out`
+- `POST /api/clock/close` — corpo `{"earnings": 50.38, "costs": 19.59}`
+- `GET /api/records`
+- `POST /api/records` — corpo `{"date": "2026-09-15", "start_time": "10:54", "end_time": "11:58", "earnings": 23.72, "costs": 4.80}`
+- `DELETE /api/records/<id>`
+
+Todas exigem sessão autenticada (cookie de login) e, para métodos que alteram dados, o cabeçalho `X-CSRFToken` (o valor está disponível na tag `<meta name="csrf-token">` de qualquer página renderizada).
+
+> **Nota sobre o escopo desta fase:** a edição de registros existentes na tabela e o dashboard (seção "Dashboard" da home) ficam para a Fase 3. Por enquanto a tabela permite apenas visualizar e excluir. Os testes automatizados (`pytest`) também serão adicionados junto com a Fase 3, cobrindo o que foi construído nas Fases 1 e 2.
+
 ### Importar histórico do Google Sheets
 Exporte a planilha como CSV e execute:
 ```bash
@@ -373,20 +399,8 @@ MIT License
 
 Copyright (c) 2026 Vinicius Silva
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.

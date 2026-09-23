@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Início — Ponto do Entregador{% endblock %}
+
+{% block content %}
+<section id="secao-ponto">
+  {% include "partials/clock.html" %}
+</section>
+
+<section id="secao-registros">
+  <h2 class="h4 mb-3">Registros</h2>
+  {% include "partials/records_table.html" %}
+</section>
+
+<section id="secao-dashboard" class="mt-5">
+  <h2 class="h4 mb-3">Dashboard</h2>
+  <p class="text-muted">O dashboard interativo chega na próxima fase.</p>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  window.PONTO_INITIAL_STATUS = {{ status | tojson }};
+</script>
+<script src="{{ url_for('static', filename='js/api.js') }}"></script>
+<script src="{{ url_for('static', filename='js/clock.js') }}"></script>
+{% endblock %}
