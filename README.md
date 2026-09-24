@@ -292,6 +292,49 @@ Todas exigem sessão autenticada (cookie de login) e, para métodos que alteram 
 
 > **Nota sobre o escopo desta fase:** a edição de registros existentes na tabela e o dashboard (seção "Dashboard" da home) ficam para a Fase 3. Por enquanto a tabela permite apenas visualizar e excluir. Os testes automatizados (`pytest`) também serão adicionados junto com a Fase 3, cobrindo o que foi construído nas Fases 1 e 2.
 
+### Testando a Fase 2 (autenticação, ponto e registros)
+
+Com o `docker compose up --build` no ar, acesse `http://localhost:5000`:
+
+1. **Criar conta**: acesse `/register`, preencha nome, e-mail e senha. Você já entra logado após o cadastro.
+2. **Ciclo do ponto**: na tela inicial, clique em **"Registrar entrada"**. O botão muda para **"Registrar saída"**; clique nele para encerrar o turno. Em seguida aparece o formulário de **ganhos e custos** — preencha e envie. O ciclo volta ao início e a nova linha aparece na tabela de **Registros**, logo abaixo.
+3. **Adicionar registro de outra data**: clique no botão **(+)** ao lado da data no topo. Preencha data, entrada, saída, ganhos e custos manualmente.
+4. **Editar ou excluir**: na tabela de registros, use os botões **Editar** (abre o mesmo modal do +, já preenchido) ou **Excluir**.
+5. **Isolamento entre usuários**: crie uma segunda conta em uma aba anônima — cada usuário só vê e só consegue editar/excluir os próprios registros.
+6. **Sessão**: ao fazer logout, tentar acessar a home ou chamar a API redireciona para `/login` (páginas) ou retorna `401` em JSON (chamadas `fetch`).
+
+Nesta fase o **dashboard** ainda é um placeholder ("chega na próxima fase") — a seção existe na home, mas sem gráficos.
+
+> Não é necessário rodar `flask db migrate` nesta fase: nenhum modelo novo foi adicionado, apenas rotas, serviços e telas em cima do schema já criado na Fase 1.
+
+#### Rodando sem Docker (opcional, para debugar mais rápido)
+
+```bash
+python -m venv .venv
+source .venv/bin/activate   # Windows: .venv\Scripts\activate
+pip install -r requirements.txt -r requirements-dev.txt
+
+export FLASK_APP=wsgi.py
+export FLASK_ENV=development
+export SECRET_KEY=dev
+export DATABASE_URL=postgresql://postgres:postgres@localhost:5432/ponto  # aponte para um Postgres local
+
+flask db upgrade
+flask run
+```
+
+### Testando a Fase 3 (dashboard)
+
+Na home, vá até a seção **Dashboard**:
+
+1. Escolha um **mês** no primeiro filtro. Os meses listados são os que já têm pelo menos um registro concluído, mais o mês atual.
+2. O filtro de **semana** só é habilitado depois de escolher um mês. As opções são geradas dinamicamente (Semana 1: dias 01–07, Semana 2: 08–14, e assim por diante até o fim do mês).
+3. Escolher **"Mês inteiro"** (opção padrão da semana) filtra o mês todo; escolher uma semana específica restringe o período a ela — nunca os dois ao mesmo tempo.
+4. Os cards mostram: **faturamento**, **custos**, **média de horas trabalhadas** e **percentual de custos sobre os ganhos** do período filtrado.
+5. O gráfico de barras mostra os **ganhos por dia** dentro do período selecionado.
+
+> Turnos ainda em aberto (sem ganhos/custos preenchidos) não entram nas contas do dashboard, pelo mesmo motivo que aparecem com "—" na tabela de registros.
+
 ### Importar histórico do Google Sheets
 Exporte a planilha como CSV e execute:
 ```bash

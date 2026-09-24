@@ -1,4 +1,4 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, redirect, request, url_for
 
 from app.config import get_config
 from app.extensions import csrf, db, login_manager, migrate
@@ -23,6 +23,12 @@ def create_app(config_object=None):
     def load_user(user_id):
         return db.session.get(User, int(user_id))
 
+    @login_manager.unauthorized_handler
+    def unauthorized():
+        if request.path.startswith("/api/"):
+            return jsonify(error="unauthorized", message="Sessão expirada. Faça login novamente."), 401
+        return redirect(url_for("auth.login", next=request.path))
+
     register_error_handlers(app)
     register_blueprints(app)
 
@@ -36,6 +42,7 @@ def create_app(config_object=None):
 def register_blueprints(app):
     from app.routes.auth import auth_bp
     from app.routes.clock import clock_bp
+    from app.routes.dashboard import dashboard_bp
     from app.routes.pages import pages_bp
     from app.routes.records import records_bp
 
@@ -43,5 +50,4 @@ def register_blueprints(app):
     app.register_blueprint(pages_bp)
     app.register_blueprint(clock_bp)
     app.register_blueprint(records_bp)
-
-    # O blueprint de dashboard (app/routes/dashboard.py) será adicionado na Fase 3.
+    app.register_blueprint(dashboard_bp)

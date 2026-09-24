@@ -4,7 +4,7 @@ from flask_login import current_user, login_required
 from app.extensions import db
 from app.models import WorkRecord
 from app.services.clock_service import ClockError
-from app.services.record_service import create_manual_record, list_records
+from app.services.record_service import create_manual_record, list_records, update_record
 
 records_bp = Blueprint("records", __name__, url_prefix="/api/records")
 
@@ -26,6 +26,19 @@ def create():
         return jsonify(error="invalid_data", message=str(exc)), 400
 
     return jsonify(record.to_dict()), 201
+
+
+@records_bp.put("/<int:record_id>")
+@login_required
+def update(record_id: int):
+    data = request.get_json(silent=True) or {}
+    try:
+        record = update_record(current_user.id, record_id, data)
+    except ClockError as exc:
+        status_code = 404 if "não encontrado" in str(exc) else 400
+        return jsonify(error="invalid_data", message=str(exc)), status_code
+
+    return jsonify(record.to_dict())
 
 
 @records_bp.delete("/<int:record_id>")

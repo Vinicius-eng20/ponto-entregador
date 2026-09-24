@@ -49,3 +49,30 @@ def list_records(user_id: int):
         .order_by(WorkRecord.date.desc(), WorkRecord.start_time.desc())
         .all()
     )
+
+
+def get_record_or_404(user_id: int, record_id: int) -> WorkRecord:
+    record = WorkRecord.query.filter_by(id=record_id, user_id=user_id).first()
+    if record is None:
+        raise ClockError("Registro não encontrado.")
+    return record
+
+
+def update_record(user_id: int, record_id: int, data: dict) -> WorkRecord:
+    """Atualiza um registro existente. Todos os campos são obrigatórios,
+    igual ao formulário de criação manual (mantém a linha sempre completa).
+    """
+    record = get_record_or_404(user_id, record_id)
+
+    required = ["date", "start_time", "end_time", "earnings", "costs"]
+    missing = [field for field in required if data.get(field) in (None, "")]
+    if missing:
+        raise ClockError(f"Campos obrigatórios ausentes: {', '.join(missing)}.")
+
+    record.date = _parse_date(data["date"])
+    record.start_time = _parse_time(data["start_time"])
+    record.end_time = _parse_time(data["end_time"])
+    record.earnings = _parse_money(data["earnings"], "ganhos")
+    record.costs = _parse_money(data["costs"], "custos")
+    db.session.commit()
+    return record

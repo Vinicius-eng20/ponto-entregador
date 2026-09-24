@@ -9,11 +9,12 @@
 <section id="secao-registros">
   <h2 class="h4 mb-3">Registros</h2>
   {% include "partials/records_table.html" %}
+  {% include "partials/delete_confirm_modal.html" %}
 </section>
 
 <section id="secao-dashboard" class="mt-5">
   <h2 class="h4 mb-3">Dashboard</h2>
-  <p class="text-muted">O dashboard interativo chega na próxima fase.</p>
+  {% include "partials/dashboard.html" %}
 </section>
 {% endblock %}
 
@@ -23,4 +24,6 @@
 </script>
 <script src="{{ url_for('static', filename='js/api.js') }}"></script>
 <script src="{{ url_for('static', filename='js/clock.js') }}"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
 {% endblock %}

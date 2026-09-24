@@ -22,7 +22,19 @@
         <td>{{ "R$ %.2f"|format(record.earnings) if record.earnings is not none else "—" }}</td>
         <td>{{ "R$ %.2f"|format(record.costs) if record.costs is not none else "—" }}</td>
         <td>{{ record.worked_hours_formatted or "—" }}</td>
-        <td>
+        <td class="text-nowrap">
+          <button
+            type="button"
+            class="btn btn-sm btn-outline-secondary btn-editar-registro me-1"
+            data-id="{{ record.id }}"
+            data-date="{{ record.date.isoformat() }}"
+            data-start="{{ record.start_time.strftime('%H:%M') }}"
+            data-end="{{ record.end_time.strftime('%H:%M') if record.end_time else '' }}"
+            data-earnings="{{ record.earnings if record.earnings is not none else '' }}"
+            data-costs="{{ record.costs if record.costs is not none else '' }}"
+          >
+            Editar
+          </button>
           <button
             type="button"
             class="btn btn-sm btn-outline-danger btn-excluir-registro"

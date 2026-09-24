@@ -11,6 +11,7 @@ body {
   border-radius: 1rem;
 }
 
+/* Um respiro entre o topo da tela e os alertas (usado nos modais também) */
 .alert {
   margin-top: 1.5rem;
 }

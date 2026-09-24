@@ -80,9 +80,27 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // Formulário do botão (+): adicionar registro manual de outra data
+  // Formulário do modal: serve tanto para adicionar (+) quanto para editar um registro
   const formAddRecord = document.getElementById("form-add-record");
   const addRecordErro = document.getElementById("add-record-erro");
+  const modalAddRecordEl = document.getElementById("modalAddRecord");
+  const modalAddRecordTitle = document.getElementById("modalAddRecordTitle");
+  const modalAddRecord = modalAddRecordEl
+    ? new bootstrap.Modal(modalAddRecordEl)
+    : null;
+  const inputRecordId = document.getElementById("add-record-id");
+
+  function resetModalParaAdicionar() {
+    formAddRecord.reset();
+    inputRecordId.value = "";
+    modalAddRecordTitle.textContent = "Adicionar registro";
+    addRecordErro.classList.add("d-none");
+  }
+
+  // O botão (+) sempre abre o modal em modo "adicionar"
+  document
+    .querySelector('[data-bs-target="#modalAddRecord"]')
+    ?.addEventListener("click", resetModalParaAdicionar);
 
   formAddRecord.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -96,11 +114,12 @@ document.addEventListener("DOMContentLoaded", () => {
       costs: document.getElementById("add-costs").value,
     };
 
+    const recordId = inputRecordId.value;
+    const url = recordId ? `/api/records/${recordId}` : "/api/records";
+    const method = recordId ? "PUT" : "POST";
+
     try {
-      await apiFetch("/api/records", {
-        method: "POST",
-        body: JSON.stringify(payload),
-      });
+      await apiFetch(url, { method, body: JSON.stringify(payload) });
       window.location.reload();
     } catch (err) {
       addRecordErro.textContent = err.message;
@@ -108,18 +127,47 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // Exclusão de registros na tabela
-  document.querySelectorAll(".btn-excluir-registro").forEach((btn) => {
-    btn.addEventListener("click", async () => {
-      if (!confirm("Excluir este registro?")) return;
-
-      try {
-        await apiFetch(`/api/records/${btn.dataset.id}`, { method: "DELETE" });
-        window.location.reload();
-      } catch (err) {
-        alert(err.message);
-      }
+  // Edição de registros na tabela: reaproveita o mesmo modal, pré-preenchido
+  document.querySelectorAll(".btn-editar-registro").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      resetModalParaAdicionar();
+      inputRecordId.value = btn.dataset.id;
+      modalAddRecordTitle.textContent = "Editar registro";
+      document.getElementById("add-date").value = btn.dataset.date;
+      document.getElementById("add-start").value = btn.dataset.start;
+      document.getElementById("add-end").value = btn.dataset.end;
+      document.getElementById("add-earnings").value = btn.dataset.earnings;
+      document.getElementById("add-costs").value = btn.dataset.costs;
+      modalAddRecord.show();
     });
+  });
+
+  // Exclusão de registros na tabela, confirmada por um modal (substitui o confirm() nativo)
+  const modalExcluirEl = document.getElementById("modalConfirmarExclusao");
+  const modalExcluir = modalExcluirEl ? new bootstrap.Modal(modalExcluirEl) : null;
+  const btnConfirmarExclusao = document.getElementById("btn-confirmar-exclusao");
+  let registroParaExcluir = null;
+
+  document.querySelectorAll(".btn-excluir-registro").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      registroParaExcluir = btn.dataset.id;
+      modalExcluir.show();
+    });
+  });
+
+  btnConfirmarExclusao?.addEventListener("click", async () => {
+    if (!registroParaExcluir) return;
+
+    try {
+      await apiFetch(`/api/records/${registroParaExcluir}`, { method: "DELETE" });
+      modalExcluir.hide();
+      window.location.reload();
+    } catch (err) {
+      modalExcluir.hide();
+      alert(err.message);
+    } finally {
+      registroParaExcluir = null;
+    }
   });
 
   // Usa o estado já renderizado pelo servidor (evita uma chamada extra ao carregar a página)
