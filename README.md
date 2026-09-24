@@ -266,32 +266,6 @@ docker compose exec web flask db migrate -m "mensagem"
 docker compose exec web flask db upgrade
 ```
 
-### Testando o fluxo da Fase 2 manualmente
-
-Com o `docker compose up --build` no ar (veja acima), acesse `http://localhost:5000` e:
-
-1. Clique em **"Cadastre-se"**, crie uma conta (nome, e-mail, senha) — o login é feito automaticamente após o cadastro.
-2. Na home, clique em **"Registrar entrada"**. O botão muda para **"Registrar saída"**.
-3. Clique em **"Registrar saída"**. Aparece o formulário de ganhos e custos.
-4. Preencha e envie. A página recarrega, a linha aparece na tabela de **Registros** (com dia da semana e horas trabalhadas já calculados) e o botão volta a ser **"Registrar entrada"**.
-5. Clique no botão **(+)** ao lado da data para adicionar um registro de outro dia (data, entrada, saída, ganhos e custos).
-6. Use o botão **"Excluir"** na tabela para remover um registro.
-7. Feche a aba e volte a abrir `http://localhost:5000`: o estado do ponto (aberto, aguardando totais ou ocioso) é recalculado a partir do banco, não se perde ao recarregar a página.
-
-Se preferir testar pela API diretamente (por exemplo com `curl` ou Postman), os endpoints relevantes desta fase são:
-
-- `GET /api/clock/status`
-- `POST /api/clock/in`
-- `POST /api/clock/out`
-- `POST /api/clock/close` — corpo `{"earnings": 50.38, "costs": 19.59}`
-- `GET /api/records`
-- `POST /api/records` — corpo `{"date": "2026-09-15", "start_time": "10:54", "end_time": "11:58", "earnings": 23.72, "costs": 4.80}`
-- `DELETE /api/records/<id>`
-
-Todas exigem sessão autenticada (cookie de login) e, para métodos que alteram dados, o cabeçalho `X-CSRFToken` (o valor está disponível na tag `<meta name="csrf-token">` de qualquer página renderizada).
-
-> **Nota sobre o escopo desta fase:** a edição de registros existentes na tabela e o dashboard (seção "Dashboard" da home) ficam para a Fase 3. Por enquanto a tabela permite apenas visualizar e excluir. Os testes automatizados (`pytest`) também serão adicionados junto com a Fase 3, cobrindo o que foi construído nas Fases 1 e 2.
-
 ### Testando a Fase 2 (autenticação, ponto e registros)
 
 Com o `docker compose up --build` no ar, acesse `http://localhost:5000`:
@@ -306,6 +280,8 @@ Com o `docker compose up --build` no ar, acesse `http://localhost:5000`:
 Nesta fase o **dashboard** ainda é um placeholder ("chega na próxima fase") — a seção existe na home, mas sem gráficos.
 
 > Não é necessário rodar `flask db migrate` nesta fase: nenhum modelo novo foi adicionado, apenas rotas, serviços e telas em cima do schema já criado na Fase 1.
+
+Se preferir testar pela API diretamente (`curl`, Postman etc.), os endpoints desta fase são `GET/POST /api/clock/status|in|out|close`, `GET/POST /api/records`, `PUT/DELETE /api/records/<id>`. Todos exigem sessão autenticada (cookie de login) e, para métodos que alteram dados, o cabeçalho `X-CSRFToken` (o valor está na tag `<meta name="csrf-token">` de qualquer página renderizada).
 
 #### Rodando sem Docker (opcional, para debugar mais rápido)
 
@@ -346,9 +322,17 @@ docker compose exec web python scripts/import_sheets_csv.py caminho/arquivo.csv 
 ## ✅ Testes
 
 ```bash
-pip install -r requirements-dev.txt
+pip install -r requirements.txt -r requirements-dev.txt
+
+# opção 1: contra um Postgres já rodando (ex.: docker compose up -d db)
+export DATABASE_URL=postgresql://postgres:postgres@localhost:5432/ponto_test
+export SECRET_KEY=test
+
 pytest --cov=app --cov-report=term-missing
 ruff check .
+
+# opção 2: tudo isolado em containers (sobe um Postgres só para os testes)
+docker compose -f docker-compose.test.yml up --build --abort-on-container-exit
 ```
 
 Estratégia:
@@ -363,25 +347,100 @@ Meta de cobertura: **≥ 80%**.
 
 ## 🔄 CI/CD (GitHub Actions)
 
-**`ci.yml`** — em todo push e pull request:
-1. Sobe um service container PostgreSQL.
-2. Instala dependências.
+**`.github/workflows/ci.yml`** — em todo push ou pull request para `main` ou `develop`:
+1. Sobe um service container PostgreSQL (`ponto_test`).
+2. Instala as dependências (`requirements.txt` + `requirements-dev.txt`).
 3. Roda `ruff check` e `ruff format --check`.
-4. Roda `pytest` com cobertura.
-5. Faz o build da imagem Docker (garante que o Dockerfile não quebrou).
+4. Roda `pytest` com cobertura, falhando o build se ficar **abaixo de 80%** (`--cov-fail-under=80`).
+5. Faz o build da imagem Docker, para garantir que o `Dockerfile` não quebrou.
 
-**`deploy.yml`** — ao entrar na `main` com o CI verde:
-1. Dispara o deploy no Render (via Deploy Hook armazenado nos *Secrets*).
-2. O container executa `scripts/entrypoint.sh`, que aplica as migrations e inicia o Gunicorn.
-3. O Render usa `/health` para validar que a nova versão subiu.
+**`.github/workflows/deploy.yml`** — disparado automaticamente quando o workflow **CI** termina com sucesso na branch `main` (usando `workflow_run`, não em toda tag verde de qualquer branch):
+1. Chama o *Deploy Hook* do Render (URL guardada em `secrets.RENDER_DEPLOY_HOOK_URL`).
+2. O Render puxa a imagem, sobe o container, que roda `scripts/entrypoint.sh` (aplica as migrations e inicia o Gunicorn).
+3. O Render usa `GET /health` para considerar o deploy saudável antes de trocar o tráfego.
 
-**Fluxo de branches**
-- `main`: produção (protegida; merge somente via PR com CI verde).
-- `feature/*`, `fix/*`: desenvolvimento.
+> Como o deploy só dispara a partir da `main`, **nada é publicado automaticamente a partir da `develop` ou de branches de feature** — elas só rodam o CI (lint + testes).
 
-**Secrets no GitHub / Render**
-- `RENDER_DEPLOY_HOOK_URL`
-- `DATABASE_URL` (Neon), `SECRET_KEY` (configurados no Render)
+**Segredo necessário no GitHub**
+- `RENDER_DEPLOY_HOOK_URL` — em *Settings → Secrets and variables → Actions* do repositório.
+
+---
+
+## 🚢 Deploy no Render + Neon
+
+A ideia: o **Neon** hospeda o Postgres (plano gratuito, não expira) e o **Render** hospeda a aplicação Flask a partir da imagem Docker do projeto (plano gratuito, mas "hiberna" após um tempo sem acessos — o primeiro request depois disso demora alguns segundos para acordar).
+
+### 1. Criar o banco no Neon
+1. Crie uma conta em [neon.tech](https://neon.tech) e um novo projeto (ex.: `ponto-entregador`).
+2. Na página do projeto, copie a **Connection string** (formato `postgresql://usuario:senha@host/banco?sslmode=require`). Essa é a variável `DATABASE_URL` de produção.
+3. O Neon já cria o banco pronto para uso — não precisa criar tabelas manualmente, as migrations (`flask db upgrade`) cuidam disso no primeiro deploy.
+
+### 2. Criar o serviço no Render
+
+**Opção A — usando o `render.yaml` deste projeto (recomendado):**
+1. No painel do Render, escolha **New → Blueprint** e aponte para o repositório no GitHub.
+2. O Render lê o `render.yaml` da raiz do projeto e já propõe o serviço configurado (Docker, `healthCheckPath: /health`, etc.).
+3. Nas variáveis marcadas como "a preencher" (`SECRET_KEY` e `DATABASE_URL`), cole os valores gerados/copiados nos passos anteriores.
+
+**Opção B — configurando manualmente:**
+1. **New → Web Service**, conecte o repositório no GitHub.
+2. **Runtime**: Docker. **Dockerfile Path**: `docker/Dockerfile`. **Docker Build Context**: `.` (raiz do projeto).
+3. **Branch**: `main` (é a partir dela que o deploy automático via GitHub Actions vai disparar).
+4. **Plan**: Free.
+5. **Health Check Path**: `/health`.
+6. Em **Environment**, adicione as variáveis:
+
+   | Variável | Valor |
+   |---|---|
+   | `FLASK_ENV` | `production` |
+   | `SECRET_KEY` | secret key |
+   | `DATABASE_URL` | a connection string do Neon |
+   | `TZ` | `America/Sao_Paulo` |
+   | `LOG_LEVEL` | `INFO` |
+
+7. Clique em **Create Web Service**. O primeiro deploy roda automaticamente e pode demorar alguns minutos (build da imagem + migrations).
+
+### 3. Habilitar o deploy automático via GitHub Actions
+1. No serviço já criado, vá em **Settings → Deploy Hook** e copie a URL.
+2. No GitHub, vá em **Settings → Secrets and variables → Actions** do repositório e crie o secret `RENDER_DEPLOY_HOOK_URL` com essa URL.
+3. Pronto: a partir de agora, todo merge na `main` que passar no CI dispara automaticamente um novo deploy (veja `.github/workflows/deploy.yml`).
+
+> Se você usou a Opção A (Blueprint), o Render já cuida do deploy contínuo nativamente ao detectar pushes na `main` — o `deploy.yml` neste caso é redundante, mas inofensivo (só teria efeito prático se você desligar o "Auto-Deploy" nativo do Render e preferir controlar isso só pelo GitHub Actions).
+
+### 4. Testar em produção
+Acesse a URL que o Render fornece (algo como `https://ponto-entregador.onrender.com`), crie uma conta e repita o roteiro de testes manuais descrito nas seções de Fase 2 e Fase 3 deste README.
+
+---
+
+## 🌿 Fluxo de Git (branches)
+
+Como até agora tudo foi commitado direto na `main`, a partir daqui o fluxo recomendado é:
+
+```bash
+# 1. Criar a branch de desenvolvimento a partir da main atualizada
+git checkout main
+git pull
+git checkout -b develop
+git push -u origin develop
+```
+
+No GitHub, em **Settings → Branches**, vale configurar:
+- `main` como **branch protegida**: exigir Pull Request antes do merge, exigir que o check do CI passe.
+- `develop` como a branch padrão de trabalho: novas features nascem a partir dela (`git checkout -b feature/nome-da-feature develop`) e voltam para ela via PR.
+
+Fluxo do dia a dia:
+```bash
+git checkout develop
+git pull
+git checkout -b feature/exportar-csv
+
+# ... commits ...
+
+git push -u origin feature/exportar-csv
+# abrir PR: feature/exportar-csv -> develop (CI roda automaticamente)
+```
+
+Quando `develop` estiver estável e pronta para ir ao ar, abre-se um PR `develop -> main`. Ao ser mesclado, o CI roda de novo na `main` e, se passar, o `deploy.yml` dispara o deploy no Render automaticamente — nenhum push direto na `main` deveria mais ser necessário.
 
 ---
 
@@ -409,23 +468,23 @@ Meta de cobertura: **≥ 80%**.
 ## 🗺️ Roadmap
 
 **Fase 1 — Base**
-- [ ] Repositório, estrutura, Docker Compose, Postgres
-- [ ] Modelos e migrações
-- [ ] Autenticação
+- [x] Repositório, estrutura, Docker Compose, Postgres
+- [x] Modelos e migrações
+- [x] Autenticação
 
 **Fase 2 — Funcionalidade principal**
-- [ ] API e tela do ponto (entrada → saída → ganhos/custos)
-- [ ] Modal (+) de registro manual
-- [ ] Tabela de registros com edição e exclusão
+- [x] API e tela do ponto (entrada → saída → ganhos/custos)
+- [x] Modal (+) de registro manual
+- [x] Tabela de registros com edição e exclusão
 
 **Fase 3 — Dashboard**
-- [ ] Endpoint de métricas
-- [ ] Filtro de mês e gráficos
+- [x] Endpoint de métricas
+- [x] Filtro de mês e semana, cards e gráfico de ganhos diários
 
 **Fase 4 — Qualidade e entrega**
-- [ ] Testes unitários e de integração
-- [ ] Logs estruturados
-- [ ] CI/CD e deploy no Render + Neon
+- [x] Testes unitários e de integração (47 testes, ~94% de cobertura)
+- [x] Logs estruturados
+- [x] CI/CD (GitHub Actions) e deploy no Render + Neon
 - [ ] Importação do histórico do Google Sheets
 
 **Ideias futuras**

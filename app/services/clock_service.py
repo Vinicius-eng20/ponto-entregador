@@ -50,10 +50,14 @@ def get_status(user_id: int) -> dict:
 def clock_in(user_id: int) -> WorkRecord:
     """Registra a entrada: cria um novo registro com data e hora atuais."""
     if get_open_record(user_id):
-        raise ClockError("Já existe um turno em aberto. Registre a saída antes de uma nova entrada.")
+        raise ClockError(
+            "Já existe um turno em aberto. Registre a saída antes de uma nova entrada."
+        )
 
     if get_awaiting_totals_record(user_id):
-        raise ClockError("Existe um turno aguardando ganhos e custos. Conclua-o antes de iniciar outro.")
+        raise ClockError(
+            "Existe um turno aguardando ganhos e custos. Conclua-o antes de iniciar outro."
+        )
 
     record = WorkRecord(
         user_id=user_id,
@@ -80,7 +84,7 @@ def _parse_money(value, field_name: str) -> Decimal:
     try:
         amount = Decimal(str(value))
     except (InvalidOperation, TypeError):
-        raise ClockError(f"O campo '{field_name}' deve ser um número válido.")
+        raise ClockError(f"O campo '{field_name}' deve ser um número válido.") from None
 
     if amount < 0:
         raise ClockError(f"O campo '{field_name}' não pode ser negativo.")

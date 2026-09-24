@@ -10,14 +10,14 @@ def _parse_date(value: str) -> date_type:
     try:
         return datetime.strptime(value, "%Y-%m-%d").date()
     except (TypeError, ValueError):
-        raise ClockError("Data inválida. Use o formato AAAA-MM-DD.")
+        raise ClockError("Data inválida. Use o formato AAAA-MM-DD.") from None
 
 
 def _parse_time(value: str):
     try:
         return datetime.strptime(value, "%H:%M").time()
     except (TypeError, ValueError):
-        raise ClockError("Horário inválido. Use o formato HH:MM.")
+        raise ClockError("Horário inválido. Use o formato HH:MM.") from None
 
 
 def create_manual_record(user_id: int, data: dict) -> WorkRecord:

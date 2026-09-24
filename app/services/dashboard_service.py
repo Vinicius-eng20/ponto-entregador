@@ -33,9 +33,7 @@ def get_available_months(user_id: int) -> list[dict]:
     encontrar o filtro "vazio" no primeiro acesso.
     """
     rows = (
-        WorkRecord.query.filter(
-            WorkRecord.user_id == user_id, WorkRecord.earnings.isnot(None)
-        )
+        WorkRecord.query.filter(WorkRecord.user_id == user_id, WorkRecord.earnings.isnot(None))
         .with_entities(WorkRecord.date)
         .all()
     )
@@ -111,9 +109,7 @@ def get_dashboard_data(user_id: int, year: int, month: int, week: int | None = N
     else:
         avg_worked_hours = None
 
-    cost_ratio_percent = (
-        float(total_costs / total_earnings * 100) if total_earnings > 0 else None
-    )
+    cost_ratio_percent = float(total_costs / total_earnings * 100) if total_earnings > 0 else None
 
     daily_totals: dict[date, Decimal] = defaultdict(lambda: Decimal("0"))
     for r in records:

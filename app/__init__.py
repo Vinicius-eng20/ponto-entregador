@@ -26,7 +26,9 @@ def create_app(config_object=None):
     @login_manager.unauthorized_handler
     def unauthorized():
         if request.path.startswith("/api/"):
-            return jsonify(error="unauthorized", message="Sessão expirada. Faça login novamente."), 401
+            return jsonify(
+                error="unauthorized", message="Sessão expirada. Faça login novamente."
+            ), 401
         return redirect(url_for("auth.login", next=request.path))
 
     register_error_handlers(app)

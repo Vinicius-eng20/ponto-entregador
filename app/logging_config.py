@@ -11,13 +11,9 @@ def configure_logging(app):
     handler = logging.StreamHandler(sys.stdout)
 
     if app.config.get("DEBUG"):
-        formatter = logging.Formatter(
-            "%(asctime)s %(levelname)s %(name)s: %(message)s"
-        )
+        formatter = logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s")
     else:
-        formatter = jsonlogger.JsonFormatter(
-            "%(asctime)s %(levelname)s %(name)s %(message)s"
-        )
+        formatter = jsonlogger.JsonFormatter("%(asctime)s %(levelname)s %(name)s %(message)s")
 
     handler.setFormatter(formatter)
 

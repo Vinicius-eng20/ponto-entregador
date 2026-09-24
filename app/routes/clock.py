@@ -40,9 +40,7 @@ def clock_out():
 def close_shift():
     data = request.get_json(silent=True) or {}
     try:
-        record = clock_service.close_shift(
-            current_user.id, data.get("earnings"), data.get("costs")
-        )
+        record = clock_service.close_shift(current_user.id, data.get("earnings"), data.get("costs"))
     except ClockError as exc:
         return jsonify(error="invalid_data", message=str(exc)), 400
 

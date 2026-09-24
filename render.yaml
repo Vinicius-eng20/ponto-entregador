@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: ponto-entregador
+    runtime: docker
+    dockerfilePath: ./docker/Dockerfile
+    dockerContext: .
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      - key: TZ
+        value: America/Sao_Paulo
+      - key: LOG_LEVEL
+        value: INFO
+      - key: SECRET_KEY
+        sync: false
+      - key: DATABASE_URL
+        sync: false
