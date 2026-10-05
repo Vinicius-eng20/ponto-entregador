@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, flash, jsonify, request
 from flask_login import current_user, login_required
 
 from app.extensions import db
@@ -22,6 +22,7 @@ def create():
     data = request.get_json(silent=True) or {}
     try:
         record = create_manual_record(current_user.id, data)
+        flash("Registro adicionado com sucesso.", "success")
     except ClockError as exc:
         return jsonify(error="invalid_data", message=str(exc)), 400
 
@@ -34,6 +35,7 @@ def update(record_id: int):
     data = request.get_json(silent=True) or {}
     try:
         record = update_record(current_user.id, record_id, data)
+        flash("Registro atualizado.", "info")
     except ClockError as exc:
         status_code = 404 if "não encontrado" in str(exc) else 400
         return jsonify(error="invalid_data", message=str(exc)), status_code
@@ -50,4 +52,5 @@ def delete(record_id: int):
 
     db.session.delete(record)
     db.session.commit()
+    flash("Registro deletado com sucesso.", "danger")
     return "", 204

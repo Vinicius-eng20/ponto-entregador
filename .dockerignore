@@ -12,3 +12,4 @@ htmlcov
 README.md
 tests
 .github
+cloudflare-worker
