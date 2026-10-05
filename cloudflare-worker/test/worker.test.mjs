@@ -43,7 +43,14 @@ before(async () => {
           "content-type": "application/json",
           "set-cookie": "session=abc; HttpOnly; Path=/",
         });
-        res.end(JSON.stringify({ recebido: corpo, csrf: req.headers["x-csrftoken"] }));
+        res.end(
+          JSON.stringify({
+            recebido: corpo,
+            csrf: req.headers["x-csrftoken"],
+            referer: req.headers.referer,
+            origin: req.headers.origin,
+          }),
+        );
       });
       return;
     }
@@ -153,4 +160,28 @@ test("/__worker-health informa o estado do backend", async () => {
 test("sem BACKEND_URL configurado: erro claro", async () => {
   const resposta = await worker.fetch(new Request(`${WORKER_ORIGIN}/`), {});
   assert.equal(resposta.status, 500);
+});
+
+test("POST: Referer e Origin do Worker viram o domínio do backend (CSRF do Flask)", async () => {
+  const resposta = await chamar("/login?next=/", acordado, {
+    method: "POST",
+    headers: {
+      "content-type": "application/x-www-form-urlencoded",
+      referer: `${WORKER_ORIGIN}/login?next=/`,
+      origin: WORKER_ORIGIN,
+    },
+    body: "email=a%40b.com",
+  });
+  const dados = await resposta.json();
+  assert.equal(dados.referer, `${acordado.url}/login?next=/`);
+  assert.equal(dados.origin, acordado.url);
+});
+
+test("Referer de outro site é repassado sem alteração", async () => {
+  const resposta = await chamar("/api/records", acordado, {
+    method: "POST",
+    headers: { referer: "https://outro-site.com/pagina" },
+    body: "x",
+  });
+  assert.equal((await resposta.json()).referer, "https://outro-site.com/pagina");
 });

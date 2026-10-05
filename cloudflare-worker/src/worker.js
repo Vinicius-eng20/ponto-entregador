@@ -60,14 +60,31 @@ async function acordadoComCache(backendUrl) {
   return acordado;
 }
 
+// O navegador manda Referer/Origin com o domínio do Worker, mas o Flask
+// recebe a requisição no domínio do Render. Em HTTPS, a proteção de CSRF do
+// Flask-WTF compara os dois e recusa o POST se forem diferentes ("The referrer
+// does not match the host"). Como todo proxy reverso, trocamos o domínio do
+// Worker pelo do backend nesses headers, e a proteção continua valendo.
+function headersParaBackend(headersOriginais, origemWorker, origemBackend) {
+  const headers = new Headers(headersOriginais);
+  for (const nome of ["referer", "origin"]) {
+    const valor = headers.get(nome);
+    if (valor && valor.startsWith(origemWorker)) {
+      headers.set(nome, origemBackend + valor.slice(origemWorker.length));
+    }
+  }
+  return headers;
+}
+
 async function repassarParaBackend(request, backendUrl) {
   const urlOriginal = new URL(request.url);
   const urlDestino = new URL(urlOriginal.pathname + urlOriginal.search, backendUrl);
 
+  const origemBackend = new URL(backendUrl).origin;
   const temCorpo = !["GET", "HEAD"].includes(request.method);
   const resposta = await fetch(urlDestino, {
     method: request.method,
-    headers: request.headers,
+    headers: headersParaBackend(request.headers, urlOriginal.origin, origemBackend),
     body: temCorpo ? request.body : undefined,
     // Redirecionamentos (ex.: login -> home) precisam chegar ao navegador,
     // não ser seguidos aqui dentro.
@@ -78,7 +95,6 @@ async function repassarParaBackend(request, backendUrl) {
   // Se o backend mandar um redirect absoluto apontando para o domínio do
   // Render, reescreve para o domínio do Worker, para o usuário nunca sair dele.
   const location = resposta.headers.get("location");
-  const origemBackend = new URL(backendUrl).origin;
   if (location && location.startsWith(origemBackend)) {
     const headers = new Headers(resposta.headers);
     headers.set("location", urlOriginal.origin + location.slice(origemBackend.length));
