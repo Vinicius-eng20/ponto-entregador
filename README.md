@@ -410,6 +410,12 @@ A ideia: o **Neon** hospeda o Postgres (plano gratuito, não expira) e o **Rende
 ### 4. Testar em produção
 Acesse a URL que o Render fornece (algo como `https://ponto-entregador.onrender.com`), crie uma conta e repita o roteiro de testes manuais descrito nas seções de Fase 2 e Fase 3 deste README.
 
+### 5. Esconder a tela de inicialização do Render (Cloudflare Worker)
+
+No plano gratuito, o Render hiberna o serviço após 15 minutos sem acesso. A próxima visita espera de 30 a 60 segundos olhando a tela de log do Render. O Worker em `cloudflare-worker/` fica na frente do app. Quando o backend está dormindo, ele mostra uma tela de carregamento própria em vez da tela do Render. Quando o backend está acordado, ele repassa tudo de forma transparente.
+
+A partir daí, a URL que você usa e compartilha passa a ser a do Worker (`https://ponto-entregador.<subdominio>.workers.dev` ou um domínio próprio). O endereço `onrender.com` não passa pela Cloudflare: quem abrir esse endereço direto continua vendo a tela do Render. Veja `cloudflare-worker/README.md` para publicar.
+
 ---
 
 ## 🌿 Fluxo de Git (branches)

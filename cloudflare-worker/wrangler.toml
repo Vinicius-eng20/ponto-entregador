@@ -1,0 +1,17 @@
+name = "ponto-entregador"
+main = "src/worker.js"
+compatibility_date = "2026-09-01"
+
+# Publica em https://ponto-entregador.<seu-subdominio>.workers.dev
+# (essa passa a ser a URL que você usa e compartilha).
+workers_dev = true
+
+[vars]
+# URL do Web Service no Render, sem barra no final. Não é segredo.
+BACKEND_URL = "https://ponto-entregador.onrender.com"
+
+# Domínio próprio (opcional): se o domínio estiver na Cloudflare, descomente
+# e ajuste. A Cloudflare cria o DNS e o certificado automaticamente.
+# routes = [
+#   { pattern = "ponto.seudominio.com", custom_domain = true }
+# ]

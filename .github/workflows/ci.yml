@@ -59,3 +59,21 @@ jobs:
       - name: Build da imagem Docker
         run: |
           docker build -t ponto-entregador:ci -f docker/Dockerfile .
+
+  worker:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: cloudflare-worker
+
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Testes do Cloudflare Worker
+        run: node --test
