@@ -1,0 +1,65 @@
+# Ambiente local da versão Cloudflare Workers (TypeScript).
+#
+#   docker compose -f docker-compose.workers.yml up --build
+#
+# Sobe:
+#   - db:  Postgres 16 com o schema de db/migrations aplicado na criação
+#   - app: o Worker rodando com `wrangler dev` (mesmo runtime da Cloudflare)
+#
+# App em http://localhost:8787 e Postgres em localhost:5433 (a porta 5432
+# continua livre para o docker-compose.yml do Flask, enquanto ele existir).
+# Este container é só para desenvolvimento e testes: em produção o app roda
+# como Worker na Cloudflare, sem container.
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: ponto_v2_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ponto
+      TZ: America/Sao_Paulo
+    ports:
+      - "5433:5432"
+    volumes:
+      - ponto_v2_data:/var/lib/postgresql/data
+      # Executado só na primeira criação do volume, em ordem alfabética.
+      - ./db/migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ponto"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  app:
+    build:
+      # Contexto só com a pasta docker/: o Dockerfile não copia o projeto
+      # (ele entra pelo volume abaixo), então não há por que enviá-lo no build.
+      context: ./docker
+      dockerfile: workers.Dockerfile
+    image: ponto-entregador-v2-dev
+    container_name: ponto_v2_app
+    working_dir: /app
+    command: sh -c "npm ci && npx wrangler dev --ip 0.0.0.0 --port 8787"
+    environment:
+      # Aponta o binding HYPERDRIVE para o Postgres deste compose.
+      CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE: postgresql://postgres:postgres@db:5432/ponto
+      # Não ler o .env da raiz: ele é do app Flask e não deve vazar para o Worker.
+      CLOUDFLARE_LOAD_DEV_VARS_FROM_DOT_ENV: "false"
+      WRANGLER_SEND_METRICS: "false"
+      CI: "true"
+    ports:
+      - "8787:8787"
+    volumes:
+      - .:/app
+      # node_modules fica dentro do container: os binários do Linux não
+      # se misturam com os do Windows/macOS da máquina host.
+      - ponto_v2_node_modules:/app/node_modules
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  ponto_v2_data:
+  ponto_v2_node_modules:

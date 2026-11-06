@@ -1,0 +1,29 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // Nome provisório durante a migração. Na Etapa 4 vira "ponto-entregador",
+  // substituindo o Worker proxy e mantendo a mesma URL.
+  "name": "ponto-entregador-v2",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-11-01",
+  // Necessário para o driver "pg" (Postgres) e o "bcryptjs".
+  "compatibility_flags": ["nodejs_compat"],
+
+  "hyperdrive": [
+    {
+      "binding": "HYPERDRIVE",
+      // Substituir pelo id gerado com:
+      //   npx wrangler hyperdrive create ponto-entregador --connection-string="<URL do Neon>"
+      "id": "00000000000000000000000000000000",
+      // Banco usado pelo `wrangler dev` fora do Docker. No Docker, a variável
+      // CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE substitui este valor.
+      "localConnectionString": "postgresql://postgres:postgres@localhost:5433/ponto"
+    }
+  ],
+
+  "vars": {
+    "TZ_APP": "America/Sao_Paulo"
+  },
+
+  // Logs estruturados no painel da Cloudflare (Workers Logs).
+  "observability": { "enabled": true }
+}

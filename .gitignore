@@ -38,3 +38,8 @@ Thumbs.db
 # Migrations geradas localmente durante desenvolvimento experimental
 # (comente esta linha se quiser versionar migrations)
 # migrations/versions/*.pyc
+
+# Node / Cloudflare Workers
+node_modules/
+.wrangler/
+.dev.vars
