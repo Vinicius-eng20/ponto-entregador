@@ -1,0 +1,22 @@
+{
+  "name": "ponto-entregador",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit",
+    "bench:bcrypt": "node scripts/bench-bcrypt.mjs"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "hono": "^4.13.16",
+    "pg": "^8.23.1"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261106.1",
+    "@types/pg": "^8.23.1",
+    "typescript": "^7.0.2",
+    "wrangler": "^4.158.0"
+  }
+}
