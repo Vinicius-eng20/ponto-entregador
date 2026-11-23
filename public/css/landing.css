@@ -1,0 +1,328 @@
+/* ==========================================================================
+   Landing page pública.
+   ========================================================================== */
+
+.cabecalho {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 1.25rem 1.5rem;
+}
+
+.cabecalho-acoes {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.cabecalho-acoes .btn-link {
+  color: var(--asfalto);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+/* ---- Hero --------------------------------------------------------------- */
+
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 3rem;
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 3.5rem 1.5rem 4.5rem;
+}
+
+.hero h1 {
+  font-size: clamp(2.75rem, 6vw, 4.5rem);
+  line-height: 1;
+  margin: 0 0 1.25rem;
+  max-width: 13ch;
+}
+
+.hero-texto p {
+  font-size: 1.2rem;
+  color: var(--tinta-suave);
+  max-width: 34rem;
+  margin: 0 0 2rem;
+}
+
+.hero-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.hero-ponto {
+  margin: 0;
+}
+
+.hero-ponto figcaption {
+  margin-top: 0.75rem;
+  color: var(--tinta-suave);
+  font-size: 0.95rem;
+}
+
+/* Mesmo desenho do cartão de ponto do painel. */
+.amostra-ponto {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 2rem 2rem 2.25rem;
+  border-radius: var(--raio);
+  background: var(--asfalto);
+  color: #fff;
+  background-image: repeating-linear-gradient(90deg, var(--faixa) 0 40px, transparent 40px 64px);
+  background-size: 100% 5px;
+  background-position: bottom;
+  background-repeat: no-repeat;
+  /* Leve inclinação: o cartão "sai" da página, como um crachá de ponto. */
+  transform: rotate(-1.5deg);
+  box-shadow: 0 24px 48px rgba(31, 42, 48, 0.28);
+}
+
+.amostra-titulo {
+  margin: 0;
+  color: #c9d3cf;
+  font-weight: 600;
+}
+
+.amostra-relogio {
+  margin: 0.3rem 0 0.5rem;
+  font-size: clamp(3.5rem, 8vw, 5rem);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.amostra-situacao {
+  margin: 0;
+  color: #dbe3e0;
+}
+
+.amostra-situacao strong {
+  color: var(--faixa);
+}
+
+.amostra-botao {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 6.5rem;
+  height: 6.5rem;
+  border-radius: 50%;
+  background: var(--custo);
+  font-size: 2.8rem;
+  box-shadow:
+    0 0 0 6px rgba(200, 65, 79, 0.25),
+    0 10px 24px rgba(0, 0, 0, 0.35);
+}
+
+/* ---- Recursos ----------------------------------------------------------- */
+
+.recursos {
+  background: var(--superficie);
+  border-top: 1px solid var(--linha);
+  border-bottom: 1px solid var(--linha);
+  padding: 4rem 1.5rem;
+}
+
+/* Mesma largura útil do hero (72rem menos o recuo lateral de 1.5rem). */
+.recursos > h2,
+.recurso {
+  max-width: 69rem;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.recursos > h2 {
+  font-size: clamp(2rem, 4vw, 2.75rem);
+  margin-bottom: 2.5rem;
+}
+
+.recurso {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 2.5rem;
+  padding: 2rem 0;
+  border-top: 1px solid var(--linha);
+}
+
+.recurso h3 {
+  font-size: 1.6rem;
+  margin: 0 0 0.6rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.recurso h3 i {
+  font-size: 1.3rem;
+  color: var(--faixa-escura);
+}
+
+.recurso-texto p {
+  margin: 0;
+  color: var(--tinta-suave);
+  font-size: 1.08rem;
+  max-width: 34rem;
+}
+
+.recurso-amostra {
+  border-radius: var(--raio-pequeno);
+  background: var(--fundo);
+  border: 1px solid var(--linha);
+}
+
+.amostra-etapas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 1.25rem;
+}
+
+.amostra-etapas span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.45rem 0.8rem;
+  border-radius: 999px;
+  background: var(--superficie);
+  border: 1px solid var(--linha);
+  font-weight: 600;
+}
+
+.amostra-etapas span:first-child i {
+  color: var(--faixa-escura);
+}
+.amostra-etapas span:nth-child(2) i {
+  color: var(--custo);
+}
+.amostra-etapas span:last-child i {
+  color: var(--ganho);
+}
+
+.amostra-tabela {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 1.05rem;
+}
+
+.amostra-tabela td {
+  padding: 0.6rem 0.9rem;
+  border-bottom: 1px solid var(--linha);
+}
+
+.amostra-tabela tr:last-child td {
+  border-bottom: 0;
+}
+
+.amostra-tabela .g {
+  color: var(--ganho);
+  font-weight: 600;
+}
+
+.amostra-tabela .c {
+  color: var(--custo);
+}
+
+.amostra-barras {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.6rem;
+  height: 10rem;
+  padding: 1.25rem;
+}
+
+.amostra-barras span {
+  flex: 1;
+  height: var(--h);
+  background: var(--ganho);
+  border-radius: 4px 4px 0 0;
+}
+
+/* ---- Chamada final e rodapé --------------------------------------------- */
+
+.chamada {
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 4.5rem 1.5rem;
+  text-align: center;
+}
+
+.chamada h2 {
+  font-size: clamp(2rem, 4vw, 2.75rem);
+  margin-bottom: 0.75rem;
+}
+
+.chamada p {
+  color: var(--tinta-suave);
+  font-size: 1.1rem;
+  margin: 0 auto 1.75rem;
+  max-width: 34rem;
+}
+
+.rodape {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 1.5rem;
+  border-top: 1px solid var(--linha);
+  color: var(--tinta-suave);
+}
+
+/* ---- Celular ------------------------------------------------------------ */
+
+@media (max-width: 767.98px) {
+  .cabecalho {
+    padding: 1rem;
+  }
+
+  .cabecalho .marca {
+    font-size: 1.05rem;
+  }
+
+  .cabecalho-acoes .btn-faixa {
+    display: none;
+  }
+
+  .hero {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2.5rem;
+    padding: 2rem 1rem 3rem;
+  }
+
+  .amostra-ponto {
+    transform: none;
+    padding: 1.5rem 1.25rem 1.75rem;
+  }
+
+  .amostra-botao {
+    width: 5rem;
+    height: 5rem;
+    font-size: 2.2rem;
+  }
+
+  .recursos {
+    padding: 3rem 1rem;
+  }
+
+  .recurso {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.25rem;
+  }
+
+  .amostra-tabela td:nth-child(2) {
+    display: none;
+  }
+
+  .chamada {
+    padding: 3.5rem 1rem;
+  }
+}

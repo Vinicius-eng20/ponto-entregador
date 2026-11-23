@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Painel | Ponto do Entregador</title>
+    <link rel="icon" href="/img/icone.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
+    <link href="/css/base.css" rel="stylesheet" />
+    <link href="/css/painel.css" rel="stylesheet" />
+  </head>
+  <body>
+    <div class="painel">
+      <aside class="menu" aria-label="Menu principal">
+        <a class="marca menu-marca" href="/app"><span class="marca-placa" aria-hidden="true">P</span>Ponto do Entregador</a>
+        <nav class="menu-links">
+          <a href="#ponto" class="ativo"><i class="bi bi-stopwatch" aria-hidden="true"></i><span>Ponto</span></a>
+          <a href="#dashboard"><i class="bi bi-bar-chart-line" aria-hidden="true"></i><span>Dashboard</span></a>
+          <a href="#registros"><i class="bi bi-list-ul" aria-hidden="true"></i><span>Registros</span></a>
+        </nav>
+        <div class="menu-usuario">
+          <span class="menu-nome" id="nome-usuario"></span>
+          <button class="menu-sair" id="botao-sair" type="button">
+            <i class="bi bi-box-arrow-left" aria-hidden="true"></i><span>Sair</span>
+          </button>
+        </div>
+      </aside>
+
+      <main class="conteudo">
+        <header class="topo">
+          <p class="topo-data" id="data-hoje"></p>
+        </header>
+
+        <!-- Ponto ------------------------------------------------------------>
+        <section class="cartao-ponto" id="ponto" aria-labelledby="titulo-ponto" data-estado="carregando">
+          <div class="ponto-info">
+            <h1 id="titulo-ponto">Ponto</h1>
+            <p class="ponto-relogio numeros" id="relogio" aria-live="off">--:--<span>:--</span></p>
+            <p class="ponto-situacao" id="situacao-ponto">Carregando...</p>
+          </div>
+
+          <div class="ponto-acao">
+            <button class="botao-ponto" id="botao-ponto" type="button" disabled>
+              <span class="botao-ponto-icone"><i class="bi bi-play-fill" aria-hidden="true"></i></span>
+              <span class="botao-ponto-texto">Registrar entrada</span>
+            </button>
+          </div>
+
+          <form class="ponto-totais" id="form-totais" hidden novalidate>
+            <div>
+              <label class="form-label" for="totais-ganhos">Ganhos do turno (R$)</label>
+              <input class="form-control numeros" id="totais-ganhos" name="earnings" type="number" inputmode="decimal" min="0" step="0.01" required />
+            </div>
+            <div>
+              <label class="form-label" for="totais-custos">Custos do turno (R$)</label>
+              <input class="form-control numeros" id="totais-custos" name="costs" type="number" inputmode="decimal" min="0" step="0.01" required />
+            </div>
+            <button class="btn btn-faixa" type="submit">Salvar ganhos e custos</button>
+          </form>
+        </section>
+
+        <!-- Dashboard -------------------------------------------------------->
+        <section class="secao" id="dashboard" aria-labelledby="titulo-dashboard">
+          <div class="secao-cabecalho">
+            <h2 id="titulo-dashboard">Dashboard</h2>
+            <div class="filtros">
+              <label class="visually-hidden" for="filtro-mes">Mês</label>
+              <select class="form-select" id="filtro-mes"></select>
+              <label class="visually-hidden" for="filtro-semana">Semana</label>
+              <select class="form-select" id="filtro-semana" disabled>
+                <option value="">Mês inteiro</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="kpis">
+            <div class="kpi kpi-ganho">
+              <p class="kpi-rotulo">Faturamento</p>
+              <p class="kpi-valor numeros" id="kpi-faturamento">—</p>
+            </div>
+            <div class="kpi kpi-custo">
+              <p class="kpi-rotulo">Custos</p>
+              <p class="kpi-valor numeros" id="kpi-custos">—</p>
+              <p class="kpi-detalhe" id="kpi-percentual"></p>
+            </div>
+            <div class="kpi kpi-lucro">
+              <p class="kpi-rotulo">Lucro</p>
+              <p class="kpi-valor numeros" id="kpi-lucro">—</p>
+            </div>
+            <div class="kpi kpi-tempo">
+              <p class="kpi-rotulo">Média por turno</p>
+              <p class="kpi-valor numeros" id="kpi-horas">—</p>
+              <p class="kpi-detalhe" id="kpi-turnos"></p>
+            </div>
+          </div>
+
+          <div class="grafico">
+            <h3>Ganhos por dia</h3>
+            <div class="grafico-area">
+              <canvas id="grafico-ganhos" aria-label="Gráfico de barras com os ganhos de cada dia do período" role="img"></canvas>
+              <p class="grafico-vazio" id="grafico-vazio" hidden>Nenhum turno concluído neste período.</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Registros -------------------------------------------------------->
+        <section class="secao" id="registros" aria-labelledby="titulo-registros">
+          <div class="secao-cabecalho">
+            <h2 id="titulo-registros">Registros</h2>
+            <button class="btn btn-asfalto" id="botao-adicionar" type="button">
+              <i class="bi bi-plus-lg" aria-hidden="true"></i> Adicionar turno
+            </button>
+          </div>
+
+          <div class="tabela-registros">
+            <table class="table align-middle mb-0">
+              <thead>
+                <tr>
+                  <th scope="col">Data</th>
+                  <th scope="col">Dia</th>
+                  <th scope="col">Entrada</th>
+                  <th scope="col">Saída</th>
+                  <th scope="col" class="text-end">Ganhos</th>
+                  <th scope="col" class="text-end">Custos</th>
+                  <th scope="col" class="text-end">Horas</th>
+                  <th scope="col"><span class="visually-hidden">Ações</span></th>
+                </tr>
+              </thead>
+              <tbody id="corpo-registros"></tbody>
+            </table>
+            <p class="registros-vazio" id="registros-vazio" hidden>
+              Nenhum registro ainda. Bata o ponto acima ou adicione um turno de outro dia.
+            </p>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <!-- Adicionar / editar turno ---------------------------------------------->
+    <div class="modal fade" id="modal-registro" tabindex="-1" aria-labelledby="titulo-modal-registro" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <form class="modal-content" id="form-registro" novalidate>
+          <div class="modal-header">
+            <h2 class="modal-title fs-4" id="titulo-modal-registro">Adicionar turno</h2>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+          </div>
+          <div class="modal-body">
+            <input type="hidden" name="id" />
+            <div class="mb-3">
+              <label class="form-label" for="registro-data">Data</label>
+              <input class="form-control" id="registro-data" name="date" type="date" required />
+            </div>
+            <div class="row g-3 mb-3">
+              <div class="col-6">
+                <label class="form-label" for="registro-entrada">Entrada</label>
+                <input class="form-control" id="registro-entrada" name="start_time" type="time" required />
+              </div>
+              <div class="col-6">
+                <label class="form-label" for="registro-saida">Saída</label>
+                <input class="form-control" id="registro-saida" name="end_time" type="time" required />
+              </div>
+            </div>
+            <div class="row g-3">
+              <div class="col-6">
+                <label class="form-label" for="registro-ganhos">Ganhos (R$)</label>
+                <input class="form-control numeros" id="registro-ganhos" name="earnings" type="number" inputmode="decimal" min="0" step="0.01" required />
+              </div>
+              <div class="col-6">
+                <label class="form-label" for="registro-custos">Custos (R$)</label>
+                <input class="form-control numeros" id="registro-custos" name="costs" type="number" inputmode="decimal" min="0" step="0.01" required />
+              </div>
+            </div>
+            <p class="erro-formulario mt-3 mb-0" role="alert"></p>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-contorno" data-bs-dismiss="modal">Cancelar</button>
+            <button type="submit" class="btn btn-faixa" id="botao-salvar-registro">Adicionar turno</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Confirmar exclusão ----------------------------------------------------->
+    <div class="modal fade" id="modal-excluir" tabindex="-1" aria-labelledby="titulo-modal-excluir" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h2 class="modal-title fs-4" id="titulo-modal-excluir">Excluir turno</h2>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+          </div>
+          <div class="modal-body">
+            <p class="mb-0" id="texto-excluir">Este turno será excluído. Essa ação não pode ser desfeita.</p>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-contorno" data-bs-dismiss="modal">Cancelar</button>
+            <button type="button" class="btn btn-danger" id="botao-confirmar-exclusao">Excluir turno</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.js"></script>
+    <script src="/js/api.js"></script>
+    <script src="/js/formato.js"></script>
+    <script src="/js/dashboard.js"></script>
+    <script src="/js/painel.js"></script>
+  </body>
+</html>

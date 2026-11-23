@@ -41,7 +41,11 @@ services:
     image: ponto-entregador-v2-dev
     container_name: ponto_v2_app
     working_dir: /app
-    command: sh -c "npm ci && npx wrangler dev --ip 0.0.0.0 --port 8787"
+    # SESSION_SECRET fixo só para desenvolvimento local; em produção é um segredo
+    # definido com `wrangler secret put`.
+    command: >
+      sh -c "npm ci && npx wrangler dev --ip 0.0.0.0 --port 8787
+      --var SESSION_SECRET:desenvolvimento-local-nao-usar-em-producao-0123456789"
     environment:
       # Aponta o binding HYPERDRIVE para o Postgres deste compose.
       CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE: postgresql://postgres:postgres@db:5432/ponto

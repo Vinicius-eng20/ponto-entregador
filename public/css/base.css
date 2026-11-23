@@ -1,0 +1,251 @@
+/* ==========================================================================
+   Ponto do Entregador — base visual compartilhada (landing, login, painel)
+   Vocabulário: sinalização de rua. Barlow (inspirada em placas de rodovia),
+   asfalto, amarelo de faixa, verde de ganho, vermelho de custo.
+   ========================================================================== */
+
+:root {
+  --asfalto: #1f2a30;
+  --asfalto-2: #2b3940;
+  --faixa: #f2a900;
+  --faixa-escura: #c98c00;
+  --ganho: #1e8e5a;
+  --custo: #c8414f;
+  --fundo: #f2f4f3;
+  --superficie: #ffffff;
+  --tinta: #1b2226;
+  --tinta-suave: #56636a;
+  --linha: #dde2e0;
+
+  --fonte: "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --fonte-numeros: "Barlow Condensed", "Barlow", system-ui, sans-serif;
+
+  --raio-pequeno: 6px;
+  --raio: 12px;
+
+  /* Bootstrap usa estas variáveis em botões, formulários e modais. */
+  --bs-body-font-family: var(--fonte);
+  --bs-body-color: var(--tinta);
+  --bs-body-bg: var(--fundo);
+  --bs-border-color: var(--linha);
+  --bs-link-color-rgb: 31, 42, 48;
+  --bs-link-hover-color-rgb: 43, 57, 64;
+  --bs-focus-ring-color: rgba(242, 169, 0, 0.45);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--fonte);
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--tinta);
+  background: var(--fundo);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--fonte-numeros);
+  font-weight: 700;
+  letter-spacing: 0.005em;
+  line-height: 1.1;
+  color: var(--tinta);
+}
+
+/* Números com largura fixa: valores e horários não "dançam" ao mudar. */
+.numeros {
+  font-family: var(--fonte-numeros);
+  font-variant-numeric: tabular-nums;
+}
+
+a {
+  color: var(--asfalto);
+}
+
+:focus-visible {
+  outline: 3px solid var(--faixa);
+  outline-offset: 2px;
+}
+
+/* ---- Botões ------------------------------------------------------------- */
+
+.btn {
+  font-weight: 600;
+  border-radius: var(--raio-pequeno);
+  padding: 0.6rem 1.1rem;
+}
+
+.btn-faixa {
+  --bs-btn-color: var(--asfalto);
+  --bs-btn-bg: var(--faixa);
+  --bs-btn-border-color: var(--faixa);
+  --bs-btn-hover-color: var(--asfalto);
+  --bs-btn-hover-bg: #ffbb1f;
+  --bs-btn-hover-border-color: #ffbb1f;
+  --bs-btn-active-color: var(--asfalto);
+  --bs-btn-active-bg: var(--faixa-escura);
+  --bs-btn-active-border-color: var(--faixa-escura);
+  --bs-btn-disabled-bg: var(--faixa);
+  --bs-btn-disabled-border-color: var(--faixa);
+  --bs-btn-disabled-color: var(--asfalto);
+}
+
+.btn-asfalto {
+  --bs-btn-color: #fff;
+  --bs-btn-bg: var(--asfalto);
+  --bs-btn-border-color: var(--asfalto);
+  --bs-btn-hover-color: #fff;
+  --bs-btn-hover-bg: var(--asfalto-2);
+  --bs-btn-hover-border-color: var(--asfalto-2);
+  --bs-btn-active-bg: #141c20;
+  --bs-btn-active-color: #fff;
+}
+
+.btn-contorno {
+  --bs-btn-color: var(--asfalto);
+  --bs-btn-border-color: var(--linha);
+  --bs-btn-hover-color: var(--asfalto);
+  --bs-btn-hover-bg: #e8ecea;
+  --bs-btn-hover-border-color: #c9d0cd;
+  --bs-btn-bg: var(--superficie);
+}
+
+/* ---- Formulários -------------------------------------------------------- */
+
+.form-label {
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin-bottom: 0.3rem;
+}
+
+.form-control,
+.form-select {
+  border-radius: var(--raio-pequeno);
+  padding: 0.6rem 0.75rem;
+  border-color: #cdd4d1;
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: var(--faixa-escura);
+  box-shadow: 0 0 0 0.2rem rgba(242, 169, 0, 0.35);
+}
+
+/* ---- Marca -------------------------------------------------------------- */
+
+.marca {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-family: var(--fonte-numeros);
+  font-weight: 700;
+  font-size: 1.3rem;
+  text-decoration: none;
+  color: inherit;
+  line-height: 1;
+}
+
+/* Placa: o "P" do ponto, como uma placa de trânsito. */
+.marca-placa {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 6px;
+  background: var(--faixa);
+  color: var(--asfalto);
+  font-size: 1.2rem;
+  border: 2px solid var(--asfalto);
+  box-shadow: 0 0 0 2px var(--faixa);
+}
+
+/* ---- Avisos (toasts) ---------------------------------------------------- */
+
+.avisos {
+  position: fixed;
+  z-index: 1090;
+  right: 1rem;
+  bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-width: min(22rem, calc(100vw - 2rem));
+}
+
+.aviso {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: var(--raio-pequeno);
+  background: var(--asfalto);
+  color: #fff;
+  border-left: 5px solid var(--ganho);
+  box-shadow: 0 6px 20px rgba(31, 42, 48, 0.25);
+  animation: aviso-entra 180ms ease-out;
+}
+
+.aviso.erro {
+  border-left-color: var(--custo);
+}
+
+@keyframes aviso-entra {
+  from {
+    transform: translateY(8px);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ---- Telas de login e cadastro ------------------------------------------ */
+
+.tela-acesso {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  place-items: center;
+  padding: 2rem 1rem;
+  /* Faixa amarela tracejada no topo, como sinalização de pista. */
+  background:
+    repeating-linear-gradient(90deg, var(--faixa) 0 48px, transparent 48px 72px) top / 100% 6px no-repeat,
+    var(--fundo);
+}
+
+.cartao-acesso {
+  width: 100%;
+  max-width: 25rem;
+  background: var(--superficie);
+  border: 1px solid var(--linha);
+  border-radius: var(--raio);
+  padding: 2rem 1.75rem;
+}
+
+.cartao-acesso h1 {
+  font-size: 2rem;
+  margin: 1.5rem 0 0.35rem;
+}
+
+.cartao-acesso .apoio {
+  color: var(--tinta-suave);
+  margin-bottom: 1.5rem;
+}
+
+.erro-formulario {
+  color: var(--custo);
+  font-weight: 600;
+  font-size: 0.95rem;
+  min-height: 1.5em;
+}

@@ -6,7 +6,8 @@
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
     "typecheck": "tsc --noEmit",
-    "bench:bcrypt": "node scripts/bench-bcrypt.mjs"
+    "bench:bcrypt": "node scripts/bench-bcrypt.mjs",
+    "redefinir-senha": "node scripts/redefinir-senha.mjs"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

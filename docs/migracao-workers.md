@@ -10,7 +10,8 @@ milissegundos a qualquer momento.
 |---|---|
 | Linguagem / framework | TypeScript + [Hono](https://hono.dev) |
 | Banco | Neon (Postgres) mantido, mesmas tabelas e dados, via Hyperdrive |
-| Senhas | bcrypt (`bcryptjs`), custo 10. As senhas atuais (scrypt do Werkzeug) serão redefinidas |
+| Senhas | bcrypt (`bcryptjs`), custo 10 (variável `BCRYPT_COST`). Senhas antigas (scrypt do Werkzeug) são redefinidas com `scripts/redefinir-senha.mjs` |
+| Plano Cloudflare | Gratuito (decisão da Etapa 1). Ver "bcrypt e o limite de CPU" abaixo |
 | Sessão / CSRF | Cookie assinado (`HttpOnly`, `Secure`, `SameSite=Lax`) + checagem de origem |
 | Migrações de banco | Arquivos `.sql` versionados em `db/migrations/` (substituem o Alembic) |
 | Ambiente local | `docker-compose.workers.yml`: Postgres + `wrangler dev`. Em produção não há container |
@@ -21,7 +22,7 @@ milissegundos a qualquer momento.
 
 - [x] **Fase 0 — Prova de conceito:** Hono + Hyperdrive + bcrypt no runtime do
   Workers, container local, schema SQL equivalente ao do Alembic.
-- [ ] **Etapa 1 — Migração + novo frontend:** API atual traduzida para
+- [x] **Etapa 1 — Migração + novo frontend:** API atual traduzida para
   TypeScript; landing page pública; área logada em layout de painel (menu
   lateral, cards, gráficos); ordem: ponto → dashboard → registros; Jinja
   substituído por páginas estáticas + JS.
@@ -58,22 +59,63 @@ motor V8 do Workers):
 | 12 | ~305 ms | ~306 ms |
 
 O plano gratuito do Workers permite **10 ms de CPU por requisição**. Mesmo o
-custo 8, abaixo do recomendado, já passa disso. Login e cadastro com bcrypt
-precisam do **Workers Paid (US$ 5/mês)**, que permite até 30 s de CPU por
-requisição. As demais rotas (ponto, registros, dashboard) gastam pouca CPU,
-porque esperar o banco não conta.
+custo 8, abaixo do recomendado, já passa disso na medição local. As demais
+rotas (ponto, registros, dashboard) gastam pouca CPU, porque esperar o banco
+não conta.
 
-A medição definitiva é o campo `cpuTime` no Workers Logs depois de um deploy:
-o processador da Cloudflare pode ser mais rápido que a máquina do benchmark,
-mas não as 7 vezes necessárias para o custo 10 caber em 10 ms.
+**Decisão:** seguir no plano gratuito com custo 10 e medir em produção na
+Etapa 4. Só cadastro e login calculam bcrypt, e a sessão dura 30 dias, então
+isso acontece raramente. Se o Workers Logs mostrar `cpuTime` acima do limite
+(ou erros 1102, "Worker exceeded resource limits") no login, as saídas são:
+reduzir `BCRYPT_COST` em `wrangler.jsonc` (menos seguro) ou mudar para o
+Workers Paid (US$ 5/mês, até 30 s de CPU por requisição).
 
-### Rotas da prova de conceito (temporárias, saem na Etapa 1)
+## Arquitetura (Etapa 1)
 
-| Rota | O que prova |
+```
+navegador ──► Cloudflare Worker (Hono)
+               ├─ arquivos estáticos (public/): landing, CSS, JS
+               │    servidos direto, sem executar o Worker
+               └─ Worker: /api/*, /app, /login, /cadastro, /health
+                    └─ Hyperdrive ──► Neon (Postgres)
+```
+
+| Caminho | Conteúdo |
 |---|---|
-| `GET /health` | Worker + Hyperdrive + Postgres conversando (503 se o banco cair) |
-| `GET /poc/banco` | Leitura das tabelas atuais (`users`, `work_records`) |
-| `POST /poc/bcrypt` | Hash e verificação bcrypt dentro do runtime do Workers |
+| `src/index.ts` | App Hono: logs, cabeçalhos de segurança, CSRF, rotas e erros |
+| `src/routes/auth.ts` | `/api/auth/register`, `/login`, `/logout`, `/me` |
+| `src/routes/api.ts` | Ponto (`/api/clock/*`), registros (`/api/records`) e dashboard (`/api/dashboard`) |
+| `src/services/` | Regras de negócio, traduzidas dos `services` do Flask |
+| `src/sessao.ts` | Cookie de sessão assinado (HMAC), 30 dias |
+| `src/db.ts` | Uma conexão por requisição, aberta só se a rota usar o banco |
+| `public/` | `index.html` (landing), `login.html`, `cadastro.html`, `app.html` (painel), CSS e JS |
+
+A API mantém os mesmos caminhos, campos e mensagens do Flask. As páginas
+passaram a ser HTML estático que consome a API, no lugar dos templates Jinja.
+
+### Segurança
+
+- **Sessão:** cookie `sessao` assinado com `SESSION_SECRET`, `HttpOnly`,
+  `SameSite=Lax` e `Secure` em HTTPS. O cookie carrega uma impressão do hash da
+  senha: redefinir a senha encerra as sessões abertas.
+- **CSRF:** o middleware do Hono recusa formulários enviados de outros sites
+  para `/api/*`. Chamadas JSON de outro site já são bloqueadas pelo navegador
+  (exigem CORS, que o app não libera), e o cookie `SameSite=Lax` não vai em
+  POST de outro site.
+- **Isolamento:** toda consulta filtra por `user_id` da sessão; registro de
+  outra conta responde 404.
+
+### Migrando a sua conta do Flask
+
+Os hashes de senha do Flask (scrypt do Werkzeug) não são verificados no
+Worker: o login com eles responde "E-mail ou senha inválidos". Para cada
+conta, defina uma senha nova (os registros continuam intactos):
+
+```bash
+DATABASE_URL="<connection string do Neon>" npm run redefinir-senha -- voce@email.com
+```
+
+O script pede a senha duas vezes sem mostrá-la na tela.
 
 ## Rodando localmente
 
@@ -86,7 +128,8 @@ docker compose -f docker-compose.workers.yml up --build
 O `--build` só é necessário na primeira vez ou quando `docker/workers.Dockerfile`
 mudar. O `.env` da raiz pertence ao app Flask e é ignorado pelo Worker.
 
-- App: http://localhost:8787 (teste `http://localhost:8787/health`)
+- App: http://localhost:8787 (landing). Crie uma conta em `/cadastro`.
+- Saúde do app e do banco: http://localhost:8787/health
 - Postgres: `localhost:5433`, usuário/senha `postgres`, banco `ponto`
 
 O schema é aplicado só na criação do volume. Para recriar o banco do zero:
@@ -99,5 +142,8 @@ Sem Docker (Node 22 + Postgres local na porta 5433):
 
 ```bash
 npm install
+cp .dev.vars.example .dev.vars   # e troque o SESSION_SECRET
 npm run dev
 ```
+
+Com o `.dev.vars` presente, o `wrangler` deixa de ler o `.env` do Flask.
