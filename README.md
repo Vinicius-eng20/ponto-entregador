@@ -2,6 +2,12 @@
 
 Aplicação web para entregadores registrarem **horas trabalhadas**, **ganhos** e **custos** diários, funcionando como um ponto eletrônico, com tabela de registros e dashboard interativo.
 
+> **Migração em andamento:** o app está sendo reescrito em TypeScript para rodar
+> como Cloudflare Worker (sem o tempo de espera do Render). A versão nova fica em
+> `src/` e `public/`; o plano, a arquitetura e como rodá-la localmente estão em
+> [`docs/migracao-workers.md`](docs/migracao-workers.md). O app Flask descrito
+> abaixo continua no ar até a virada, na Etapa 4.
+
 Este projeto substitui o fluxo atual (formulário no Tally → Google Sheets → dashboard simples) por uma aplicação única, com login por usuário e cada pessoa vendo apenas os próprios dados.
 
 ---
