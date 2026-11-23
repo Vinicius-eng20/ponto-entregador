@@ -63,8 +63,13 @@ rotasApi.post("/clock/close", async (c) => {
 // ---- Registros -------------------------------------------------------------
 
 rotasApi.get("/records", async (c) => {
+  const texto = c.req.query("page") ?? "1";
+  const pagina = Number(texto);
+  if (!/^\d+$/.test(texto) || pagina < 1) {
+    throw new AppError("Página inválida. Use um número a partir de 1.", 400, "invalid_params");
+  }
   const db = await c.get("db")();
-  return c.json(await listarRegistros(db, usuarioAtual(c).id));
+  return c.json(await listarRegistros(db, usuarioAtual(c).id, pagina));
 });
 
 rotasApi.post("/records", async (c) => {
