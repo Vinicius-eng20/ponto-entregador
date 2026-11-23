@@ -20,9 +20,23 @@
     }
   ],
 
-  "vars": {
-    "TZ_APP": "America/Sao_Paulo"
+  // Landing, páginas e CSS/JS. Só as rotas listadas em run_worker_first passam
+  // pelo Worker (API e páginas que dependem de login); o resto é servido direto,
+  // sem custo de CPU nem de requisição do Worker.
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "404-page",
+    "run_worker_first": ["/api/*", "/app", "/login", "/cadastro", "/health"]
   },
+
+  "vars": {
+    "TZ_APP": "America/Sao_Paulo",
+    // Custo do bcrypt. Ver docs/migracao-workers.md sobre o limite de CPU do plano gratuito.
+    "BCRYPT_COST": "10"
+  },
+  // SESSION_SECRET é segredo: local em .dev.vars, produção com `wrangler secret put SESSION_SECRET`.
 
   // Logs estruturados no painel da Cloudflare (Workers Logs).
   "observability": { "enabled": true }

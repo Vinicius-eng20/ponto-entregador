@@ -1,0 +1,5 @@
+# Segredos para `npm run dev` fora do Docker. Copie para .dev.vars (que fica
+# fora do Git) e troque o valor. Gere um com:
+#   node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+# Em produção o segredo é definido com: npx wrangler secret put SESSION_SECRET
+SESSION_SECRET=troque-por-um-valor-aleatorio-com-pelo-menos-32-caracteres

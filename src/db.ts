@@ -1,26 +1,42 @@
-import type { ExecutionContext } from "hono";
-import { Client } from "pg";
+import type { MiddlewareHandler } from "hono";
+import pg from "pg";
 
-import type { Env } from "./types";
+import type { AppEnv } from "./types";
+
+// Sem conversões automáticas do driver: DATE e TIME viram Date do JavaScript
+// (com fuso), o que desloca datas. Mantemos tudo como texto e convertemos
+// NUMERIC (ganhos/custos) para número.
+pg.types.setTypeParser(1082, (valor: string) => valor); // DATE  -> "AAAA-MM-DD"
+pg.types.setTypeParser(1083, (valor: string) => valor); // TIME  -> "HH:MM:SS"
+pg.types.setTypeParser(1700, (valor: string) => Number(valor)); // NUMERIC -> number
 
 /**
- * Abre uma conexão com o Postgres para a requisição atual e fecha ao final.
+ * Disponibiliza `c.get("db")()`: abre a conexão só se a rota precisar e a
+ * fecha depois da resposta, sem atrasá-la.
  *
  * Em produção a conexão passa pelo Hyperdrive, que mantém um pool de conexões
- * já abertas com o Neon perto do Worker. Abrir um Client por requisição é o
- * padrão recomendado pela Cloudflare: o custo real de conexão fica no pool.
+ * já abertas com o Neon perto do Worker. Um Client por requisição é o padrão
+ * recomendado pela Cloudflare: o custo real de conexão fica no pool.
  */
-export async function withDb<T>(
-  env: Env,
-  ctx: ExecutionContext,
-  fn: (client: Client) => Promise<T>,
-): Promise<T> {
-  const client = new Client({ connectionString: env.HYPERDRIVE.connectionString });
-  await client.connect();
+export const conexaoPorRequisicao: MiddlewareHandler<AppEnv> = async (c, next) => {
+  let cliente: pg.Client | null = null;
+  let conectando: Promise<pg.Client> | null = null;
+
+  c.set("db", () => {
+    if (!conectando) {
+      cliente = new pg.Client({ connectionString: c.env.HYPERDRIVE.connectionString });
+      const atual = cliente;
+      conectando = atual.connect().then(() => atual);
+    }
+    return conectando;
+  });
+
   try {
-    return await fn(client);
+    await next();
   } finally {
-    // Fecha a conexão sem atrasar a resposta.
-    ctx.waitUntil(client.end());
+    if (cliente) {
+      const aberto: pg.Client = cliente;
+      c.executionCtx.waitUntil(aberto.end().catch(() => undefined));
+    }
   }
-}
+};

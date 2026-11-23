@@ -77,3 +77,22 @@ jobs:
 
       - name: Testes do Cloudflare Worker
         run: node --test
+
+  app-workers:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Checagem de tipos (TypeScript)
+        run: npm run typecheck
