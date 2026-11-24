@@ -1,7 +1,7 @@
 import { AppError } from "./errors";
 
-/** Valor máximo de NUMERIC(10, 2). */
-const VALOR_MAXIMO = 99_999_999.99;
+/** Valor máximo de NUMERIC(10, 2), em centavos (inteiro, sem ponto flutuante). */
+const CENTAVOS_MAXIMOS = 9_999_999_999;
 
 /**
  * Converte ganhos/custos para número com 2 casas. Aceita número ou texto,
@@ -15,14 +15,22 @@ export function lerValor(valor: unknown, campo: string): number {
     throw new AppError(`O campo '${campo}' deve ser um número válido.`);
   }
 
-  const numero = Number(normalizado);
-  if (numero < 0) {
+  if (normalizado.startsWith("-") && Number(normalizado) !== 0) {
     throw new AppError(`O campo '${campo}' não pode ser negativo.`);
   }
-  if (numero > VALOR_MAXIMO) {
+
+  // Arredonda para centavos sobre o texto, sem ponto flutuante (1.005 * 100 =
+  // 100.4999... daria 1.00). Mesma regra do NUMERIC do Postgres: metade para cima.
+  const [inteiro, fracao = ""] = normalizado.replace(/^-/, "").split(".");
+  const centavos =
+    Number(inteiro) * 100 +
+    Number(fracao.slice(0, 2).padEnd(2, "0")) +
+    (Number(fracao[2] ?? 0) >= 5 ? 1 : 0);
+
+  if (centavos > CENTAVOS_MAXIMOS) {
     throw new AppError(`O campo '${campo}' é grande demais.`);
   }
-  return Math.round(numero * 100) / 100;
+  return centavos / 100;
 }
 
 /** Valida AAAA-MM-DD e se a data existe no calendário. */
@@ -55,7 +63,9 @@ export function lerHora(valor: unknown): string {
 
 /** Mesmo comportamento do Flask: lista os campos vazios ou ausentes. */
 export function exigirCampos(dados: Record<string, unknown>, campos: string[]): void {
-  const faltando = campos.filter((campo) => dados[campo] === undefined || dados[campo] === null || dados[campo] === "");
+  const faltando = campos.filter(
+    (campo) => dados[campo] === undefined || dados[campo] === null || dados[campo] === "",
+  );
   if (faltando.length > 0) {
     throw new AppError(`Campos obrigatórios ausentes: ${faltando.join(", ")}.`);
   }
