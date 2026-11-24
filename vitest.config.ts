@@ -4,7 +4,7 @@ import { defineConfig } from "vitest/config";
 /**
  * Banco Postgres usado pelos testes. Ele é recriado do zero a cada execução
  * (veja test/global-setup.ts), então nunca aponte para um banco com dados reais.
- *   - local:  docker compose -f docker-compose.workers.yml run --rm test
+ *   - local:  docker compose run --rm test
  *   - CI:     serviço postgres do GitHub Actions
  */
 export const URL_BANCO_TESTE =

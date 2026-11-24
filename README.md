@@ -1,48 +1,44 @@
 # 🛵 Ponto do Entregador
 
-Aplicação web para entregadores registrarem **horas trabalhadas**, **ganhos** e **custos** diários, funcionando como um ponto eletrônico, com tabela de registros e dashboard interativo.
+Aplicação web para entregadores registrarem **horas trabalhadas**, **ganhos** e **custos** diários, funcionando como um ponto eletrônico, com dashboard e tabela de registros.
 
-> **Migração em andamento:** o app está sendo reescrito em TypeScript para rodar
-> como Cloudflare Worker (sem o tempo de espera do Render). A versão nova fica em
-> `src/` e `public/`; o plano, a arquitetura e como rodá-la localmente estão em
-> [`docs/migracao-workers.md`](docs/migracao-workers.md). O app Flask descrito
-> abaixo continua no ar até a virada, na Etapa 4.
+Substitui o fluxo antigo (formulário no Tally → Google Sheets) por uma aplicação única, com login por usuário e cada pessoa vendo apenas os próprios dados.
 
-Este projeto substitui o fluxo atual (formulário no Tally → Google Sheets → dashboard simples) por uma aplicação única, com login por usuário e cada pessoa vendo apenas os próprios dados.
+No ar em **https://ponto-entregador.load1.workers.dev**.
 
 ---
 
 ## 📌 Funcionalidades
 
-### Autenticação
-- Cadastro e login por e-mail e senha (senha armazenada com hash).
+### Acesso
+- Landing page pública com as funcionalidades e o caminho para o login.
+- Cadastro e login por e-mail e senha (hash bcrypt). A sessão dura 30 dias.
 - Cada usuário acessa apenas os seus registros.
 
-### Home (três seções)
+### Painel (área logada)
 
-#### 1. Ponto (landing page)
+#### 1. Ponto
 - Data atual centralizada no topo, **não editável**.
-- Botão **"Registrar entrada"**: salva a data e o horário atuais em um novo registro.
-- Após a entrada, o botão muda para **"Registrar saída"**: salva o horário de saída na mesma linha.
-- Após a saída, aparece um formulário de **ganhos** e **custos** do dia. No envio, os valores são gravados na mesma linha, o formulário some e o botão **"Registrar entrada"** volta, reiniciando o ciclo.
-- Botão **(+)** para adicionar um registro manual de outra data (formulário equivalente ao do Tally: data, entrada, saída, ganhos e custos).
-- O estado do ciclo vem do banco (registro sem saída = turno aberto), então sobrevive a recarregar a página ou trocar de dispositivo.
+- **"Registrar entrada"** salva a data e o horário atuais em um novo registro; o botão vira **"Registrar saída"**.
+- Depois da saída, aparece o formulário de **ganhos** e **custos**, gravados na mesma linha. Ao enviar, o ciclo recomeça.
+- Botão **(+)** para adicionar um registro de outra data.
+- O estado vem do banco (registro sem saída = turno aberto), então sobrevive a recarregar a página ou trocar de aparelho.
 
-#### 2. Registros (tabela)
+#### 2. Dashboard
+- Filtro de **mês**, aberto no mês atual, e de **semana real** (domingo a sábado, podendo incluir dias dos meses vizinhos, ex.: 27 de setembro a 3 de outubro).
+- Cards: faturamento, custos, lucro, média por turno, **dia mais lucrativo** e **dia menos lucrativo**.
+- Gráfico de ganhos por dia, com o lucro do dia ao tocar na barra.
+
+#### 3. Registros
 | Data | Dia da semana | Entrada | Saída | Ganhos | Custos | Horas trabalhadas |
 |------|---------------|---------|-------|--------|--------|-------------------|
 
-- **Dia da semana** e **horas trabalhadas** são calculados pelo sistema (não são gravados no banco).
-- Ordenação, filtro por período, edição e exclusão de registros.
-
-#### 3. Dashboard
-- Filtro de **mês** (e ano).
-- Cards: faturamento, custos, lucro líquido, média de horas por dia, ganho médio por hora, dias trabalhados.
-- Gráficos: ganhos diários, evolução acumulada, ganhos vs. custos, ganho por hora por dia, média por dia da semana.
+- **Dia da semana** e **horas trabalhadas** são calculados (não ficam no banco).
+- 10 registros por página, mais recentes primeiro, com edição e exclusão.
 
 ### Requisitos transversais
-- Layout **responsivo** (mobile first, pois o uso principal é pelo celular).
-- **Testes** automatizados, **CI/CD** e **logs**.
+- Layout **responsivo** (o uso principal é pelo celular).
+- **Testes** automatizados, **CI/CD** e **logs** estruturados.
 
 ---
 
@@ -50,21 +46,16 @@ Este projeto substitui o fluxo atual (formulário no Tally → Google Sheets →
 
 | Camada | Tecnologia |
 |--------|------------|
-| Frontend | HTML, CSS, JavaScript e Bootstrap 5 (templates Jinja2 + `fetch` para a API) |
-| Gráficos | Chart.js |
-| Backend | Python 3.12 + Flask |
-| ORM / Migrações | SQLAlchemy + Flask-Migrate (Alembic) |
-| Autenticação | Flask-Login + Werkzeug (hash de senha) + Flask-WTF (CSRF) |
-| Banco de dados | PostgreSQL (Neon, plano gratuito, em produção; container Postgres local) |
-| Servidor WSGI | Gunicorn |
-| Container | Docker + Docker Compose |
-| Testes | pytest, pytest-cov |
-| Qualidade | Ruff (lint + format) |
+| Runtime | Cloudflare Workers (plano gratuito, sem hibernação) |
+| Backend | TypeScript + [Hono](https://hono.dev) |
+| Frontend | HTML, CSS e JavaScript estáticos, Bootstrap 5, Chart.js |
+| Banco de dados | PostgreSQL no Neon, acessado pelo Cloudflare Hyperdrive (driver `pg`) |
+| Senhas / sessão | `bcryptjs` + cookie assinado (HMAC) |
+| Migrações | Arquivos `.sql` em `db/migrations/` |
+| Testes | Vitest no runtime do Workers (`@cloudflare/vitest-plugin`), contra Postgres de verdade |
+| Qualidade | Biome (lint + format), TypeScript |
+| Ambiente local | Docker Compose (Postgres + `wrangler dev`) |
 | CI/CD | GitHub Actions |
-| Deploy | Cloudflare Workers (plano gratuito) + Neon via Hyperdrive. Antes: Render |
-| Versionamento | Git + GitHub |
-
-> **Por que Neon e não o Postgres do Render?** O Postgres gratuito do Render expira após um período; o Neon mantém o plano gratuito sem expirar. O web service gratuito do Render "hiberna" após inatividade, então o primeiro acesso depois de um tempo parado pode demorar alguns segundos.
 
 ---
 
@@ -72,104 +63,35 @@ Este projeto substitui o fluxo atual (formulário no Tally → Google Sheets →
 
 ```
 ponto-entregador/
-├── .github/
-│   └── workflows/
-│       ├── ci.yml                # lint + testes em todo push/PR
-│       └── deploy.yml            # deploy automático na main após CI verde
-│
-├── app/
-│   ├── __init__.py               # application factory (create_app)
-│   ├── config.py                 # Config, DevConfig, TestConfig, ProdConfig
-│   ├── extensions.py             # db, migrate, login_manager, csrf
-│   ├── logging_config.py         # configuração de logs (JSON em produção)
-│   │
-│   ├── models/
-│   │   ├── __init__.py
-│   │   ├── user.py               # User
-│   │   └── work_record.py        # WorkRecord (+ propriedades calculadas)
-│   │
-│   ├── routes/                   # blueprints (camada HTTP, fina)
-│   │   ├── __init__.py
-│   │   ├── auth.py               # /login, /register, /logout
-│   │   ├── pages.py              # páginas HTML: /, /registros, /dashboard
-│   │   ├── clock.py              # API do ponto: /api/clock/*
-│   │   ├── records.py            # API CRUD: /api/records
-│   │   └── dashboard.py          # API de métricas: /api/dashboard
-│   │
-│   ├── services/                 # regras de negócio (testáveis sem HTTP)
-│   │   ├── clock_service.py      # entrada, saída, fechar turno com ganhos/custos
-│   │   ├── record_service.py     # criação/edição/validação de registros
-│   │   └── dashboard_service.py  # agregações e métricas do mês
-│   │
-│   ├── schemas/                  # validação de entrada/saída (ex.: Marshmallow ou Pydantic)
-│   │   └── record_schema.py
-│   │
-│   ├── utils/
-│   │   ├── time_utils.py         # horas trabalhadas, fuso America/Sao_Paulo, dia da semana
-│   │   └── errors.py             # handlers de erro (400, 401, 404, 500)
-│   │
-│   ├── templates/
-│   │   ├── base.html             # layout, navbar, bootstrap
-│   │   ├── auth/
-│   │   │   ├── login.html
-│   │   │   └── register.html
-│   │   ├── home.html             # seções: ponto, registros, dashboard
-│   │   ├── partials/
-│   │   │   ├── clock.html        # botão entrada/saída + form de ganhos/custos
-│   │   │   ├── add_record_modal.html   # modal do botão (+)
-│   │   │   ├── records_table.html
-│   │   │   └── dashboard.html
-│   │   └── errors/
-│   │       ├── 404.html
-│   │       └── 500.html
-│   │
-│   └── static/
-│       ├── css/
-│       │   └── style.css
-│       └── js/
-│           ├── api.js            # wrapper do fetch (CSRF, tratamento de erro)
-│           ├── clock.js          # lógica do ponto eletrônico
-│           ├── records.js        # tabela, edição, exclusão, modal (+)
-│           └── dashboard.js      # filtros e gráficos (Chart.js)
-│
-├── migrations/                   # gerado pelo Flask-Migrate
-│
-├── tests/
-│   ├── conftest.py               # app de teste, banco isolado, fixtures (usuário, client logado)
-│   ├── unit/
-│   │   ├── test_time_utils.py    # horas trabalhadas, virada de meia-noite, dia da semana
-│   │   ├── test_clock_service.py
-│   │   └── test_dashboard_service.py
-│   └── integration/
-│       ├── test_auth.py
-│       ├── test_clock_api.py     # ciclo completo: entrada → saída → form → nova entrada
-│       ├── test_records_api.py
-│       └── test_isolation.py     # usuário A não enxerga dados do usuário B
-│
+├── .github/workflows/
+│   ├── ci.yml                 # lint, tipos, testes e build em todo push/PR
+│   └── deploy.yml             # publica na Cloudflare depois do CI verde na main
+├── src/
+│   ├── index.ts               # app Hono: logs, cabeçalhos de segurança, CSRF, rotas, erros
+│   ├── db.ts                  # uma conexão por requisição, aberta só se a rota usar o banco
+│   ├── sessao.ts              # cookie de sessão assinado
+│   ├── routes/
+│   │   ├── auth.ts            # cadastro, login, logout, /me
+│   │   └── api.ts             # ponto, registros, dashboard
+│   ├── services/              # regras de negócio (ponto, registros, dashboard)
+│   └── lib/                   # horário e fuso, validação, erros, formato da API
+├── public/                    # landing, login, cadastro, painel, CSS, JS e imagens
+├── db/migrations/             # schema do banco (SQL)
+├── test/
+│   ├── unit/                  # funções puras: horas, validação, semanas do mês
+│   ├── integracao/            # API pelo Worker: auth, ponto, registros, dashboard, segurança
+│   └── helpers.ts
 ├── scripts/
-│   ├── entrypoint.sh             # aplica migrations e sobe o gunicorn
-│   └── import_sheets_csv.py      # importa o histórico do Google Sheets (CSV)
-│
-├── docker/
-│   └── Dockerfile
-├── docker-compose.yml            # app + postgres para desenvolvimento
-├── docker-compose.test.yml       # (opcional) app + postgres para rodar testes
-│
-├── wsgi.py                       # ponto de entrada do gunicorn
-├── requirements.txt
-├── requirements-dev.txt          # pytest, pytest-cov, ruff
-├── pyproject.toml                # config do ruff e pytest
-├── .env.example
-├── .gitignore
-├── .dockerignore
-└── README.md
+│   ├── migrar.mjs             # npm run migrar
+│   ├── redefinir-senha.mjs    # npm run redefinir-senha
+│   └── bench-bcrypt.mjs       # npm run bench:bcrypt
+├── docker/Dockerfile          # imagem de desenvolvimento (Node + certificados)
+├── docker-compose.yml         # Postgres + app + testes, só para uso local
+├── docs/migracao-workers.md   # histórico e decisões da migração do Flask/Render
+├── wrangler.jsonc             # configuração do Worker
+├── vitest.config.ts
+└── package.json
 ```
-
-### Decisões de arquitetura
-- **Application factory** (`create_app`) para facilitar testes e múltiplos ambientes.
-- **Blueprints → Services → Models**: rotas só tratam HTTP; regra de negócio fica em `services/`, o que permite testar sem subir servidor.
-- **Backend renderiza as páginas e expõe uma API JSON** consumida por `fetch`. Assim o frontend continua sendo HTML/CSS/JS puro com Bootstrap, sem framework SPA.
-- **Isolamento por usuário**: todas as queries filtram por `user_id` (coberto por teste dedicado).
 
 ---
 
@@ -180,7 +102,7 @@ ponto-entregador/
 |-------|------|-----------|
 | id | serial PK | |
 | email | varchar(255) | único |
-| password_hash | varchar(255) | |
+| password_hash | varchar(255) | bcrypt |
 | name | varchar(100) | |
 | created_at | timestamptz | |
 
@@ -188,139 +110,82 @@ ponto-entregador/
 | Campo | Tipo | Observação |
 |-------|------|-----------|
 | id | serial PK | |
-| user_id | FK → users.id | indexado |
+| user_id | FK → users.id | |
 | date | date | data do início do turno |
-| start_time | time | horário de entrada |
+| start_time | time | entrada |
 | end_time | time, **nullable** | `NULL` = turno em aberto |
 | earnings | numeric(10,2), **nullable** | preenchido após a saída |
 | costs | numeric(10,2), **nullable** | preenchido após a saída |
 | created_at / updated_at | timestamptz | |
 
 **Regras**
-- Índice em `(user_id, date)`.
 - Apenas **um turno em aberto por usuário** (índice único parcial em `user_id WHERE end_time IS NULL`).
 - `earnings` e `costs` ≥ 0.
-- **Dia da semana** e **horas trabalhadas** não são armazenados: são calculados. Se `end_time < start_time`, considera-se que o turno virou a meia-noite.
-- Não há unicidade por data, permitindo mais de um turno no mesmo dia (ex.: almoço e jantar).
+- Se `end_time < start_time`, o turno passou da meia-noite.
+- Pode haver mais de um turno no mesmo dia (ex.: almoço e jantar).
 - O "agora" do sistema usa o fuso `America/Sao_Paulo`.
 
 ---
 
-## 🔌 Endpoints
+## 🔌 Rotas
 
 ### Páginas
 | Rota | Descrição |
 |------|-----------|
-| `GET /login`, `POST /login` | Login |
-| `GET /register`, `POST /register` | Cadastro |
-| `POST /logout` | Sair |
-| `GET /` | Home (ponto, registros e dashboard) |
+| `/` | Landing page |
+| `/login`, `/cadastro` | Acesso (quem já está logado vai para `/app`) |
+| `/app` | Painel: ponto, dashboard e registros (exige login) |
+| `/health` | Confere o Worker e o banco |
 
-### API (requer login)
+### API
 | Método | Rota | Descrição |
 |--------|------|-----------|
-| GET | `/api/clock/status` | Estado atual: `idle`, `working` ou `awaiting_totals` |
-| POST | `/api/clock/in` | Registra entrada (data e hora atuais) |
+| POST | `/api/auth/register` | Cadastro (já inicia a sessão) |
+| POST | `/api/auth/login` | Login |
+| POST | `/api/auth/logout` | Sair |
+| GET | `/api/auth/me` | Usuário da sessão |
+| GET | `/api/clock/status` | Estado: `idle`, `working` ou `awaiting_totals` |
+| POST | `/api/clock/in` | Registra entrada |
 | POST | `/api/clock/out` | Registra saída no turno aberto |
 | POST | `/api/clock/close` | Envia ganhos e custos e conclui o ciclo |
-| GET | `/api/records?from=&to=` | Lista registros (com dia da semana e horas calculados) |
+| GET | `/api/records?page=N` | Registros, 10 por página: `{ items, page, per_page, total, total_pages }` |
 | POST | `/api/records` | Cria registro manual (botão +) |
-| PUT | `/api/records/<id>` | Edita registro |
-| DELETE | `/api/records/<id>` | Remove registro |
-| GET | `/api/dashboard?year=&month=` | Métricas e séries do período |
-| GET | `/health` | Health check (usado pelo deploy) |
+| PUT | `/api/records/:id` | Edita registro |
+| DELETE | `/api/records/:id` | Remove registro |
+| GET | `/api/dashboard/months` | Meses com registros |
+| GET | `/api/dashboard?year=&month=&week=` | Métricas do mês ou de uma semana |
+
+As rotas fora de `/api/auth` exigem sessão e respondem `401` em JSON sem ela.
 
 **Estados do ponto**
 ```
 idle ──(entrada)──▶ working ──(saída)──▶ awaiting_totals ──(ganhos/custos)──▶ idle
 ```
-- `working`: existe registro com `end_time IS NULL`.
-- `awaiting_totals`: existe registro com `end_time` preenchido e `earnings IS NULL`.
-- Assim o formulário de ganhos/custos reaparece mesmo se o usuário fechar a página antes de enviar.
 
 ---
 
 ## 🚀 Rodando localmente
 
-### Pré-requisitos
-- Docker e Docker Compose
-- Git
+Requer Docker.
 
-### Passo a passo
 ```bash
-git clone https://github.com/<seu-usuario>/ponto-entregador.git
-cd ponto-entregador
-
-cp .env.example .env        # ajuste SECRET_KEY e credenciais
 docker compose up --build
 ```
 
-A aplicação ficará em `http://localhost:5000`.
+O `--build` só é necessário na primeira vez ou quando `docker/Dockerfile` mudar.
 
-### Variáveis de ambiente (`.env.example`)
-```env
-FLASK_ENV=development
-SECRET_KEY=troque-esta-chave
-DATABASE_URL=postgresql://postgres:postgres@db:5432/ponto
-TZ=America/Sao_Paulo
-LOG_LEVEL=INFO
-```
+- App: http://localhost:8787. Crie uma conta em `/cadastro`.
+- Saúde do app e do banco: http://localhost:8787/health
+- Postgres: `localhost:5433`, usuário/senha `postgres`, banco `ponto`
 
-### Migrações
-```bash
-docker compose exec web flask db migrate -m "mensagem"
-docker compose exec web flask db upgrade
-```
+O schema de `db/migrations` é aplicado na criação do volume. Para recriar o banco do zero: `docker compose down -v`.
 
-### Testando a Fase 2 (autenticação, ponto e registros)
-
-Com o `docker compose up --build` no ar, acesse `http://localhost:5000`:
-
-1. **Criar conta**: acesse `/register`, preencha nome, e-mail e senha. Você já entra logado após o cadastro.
-2. **Ciclo do ponto**: na tela inicial, clique em **"Registrar entrada"**. O botão muda para **"Registrar saída"**; clique nele para encerrar o turno. Em seguida aparece o formulário de **ganhos e custos** — preencha e envie. O ciclo volta ao início e a nova linha aparece na tabela de **Registros**, logo abaixo.
-3. **Adicionar registro de outra data**: clique no botão **(+)** ao lado da data no topo. Preencha data, entrada, saída, ganhos e custos manualmente.
-4. **Editar ou excluir**: na tabela de registros, use os botões **Editar** (abre o mesmo modal do +, já preenchido) ou **Excluir**.
-5. **Isolamento entre usuários**: crie uma segunda conta em uma aba anônima — cada usuário só vê e só consegue editar/excluir os próprios registros.
-6. **Sessão**: ao fazer logout, tentar acessar a home ou chamar a API redireciona para `/login` (páginas) ou retorna `401` em JSON (chamadas `fetch`).
-
-Nesta fase o **dashboard** ainda é um placeholder ("chega na próxima fase") — a seção existe na home, mas sem gráficos.
-
-> Não é necessário rodar `flask db migrate` nesta fase: nenhum modelo novo foi adicionado, apenas rotas, serviços e telas em cima do schema já criado na Fase 1.
-
-Se preferir testar pela API diretamente (`curl`, Postman etc.), os endpoints desta fase são `GET/POST /api/clock/status|in|out|close`, `GET/POST /api/records`, `PUT/DELETE /api/records/<id>`. Todos exigem sessão autenticada (cookie de login) e, para métodos que alteram dados, o cabeçalho `X-CSRFToken` (o valor está na tag `<meta name="csrf-token">` de qualquer página renderizada).
-
-#### Rodando sem Docker (opcional, para debugar mais rápido)
+Sem Docker (Node 22 ou mais novo + Postgres local na porta 5433):
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate   # Windows: .venv\Scripts\activate
-pip install -r requirements.txt -r requirements-dev.txt
-
-export FLASK_APP=wsgi.py
-export FLASK_ENV=development
-export SECRET_KEY=dev
-export DATABASE_URL=postgresql://postgres:postgres@localhost:5432/ponto  # aponte para um Postgres local
-
-flask db upgrade
-flask run
-```
-
-### Testando a Fase 3 (dashboard)
-
-Na home, vá até a seção **Dashboard**:
-
-1. Escolha um **mês** no primeiro filtro. Os meses listados são os que já têm pelo menos um registro concluído, mais o mês atual.
-2. O filtro de **semana** só é habilitado depois de escolher um mês. As opções são geradas dinamicamente (Semana 1: dias 01–07, Semana 2: 08–14, e assim por diante até o fim do mês).
-3. Escolher **"Mês inteiro"** (opção padrão da semana) filtra o mês todo; escolher uma semana específica restringe o período a ela — nunca os dois ao mesmo tempo.
-4. Os cards mostram: **faturamento**, **custos**, **média de horas trabalhadas** e **percentual de custos sobre os ganhos** do período filtrado.
-5. O gráfico de barras mostra os **ganhos por dia** dentro do período selecionado.
-
-> Turnos ainda em aberto (sem ganhos/custos preenchidos) não entram nas contas do dashboard, pelo mesmo motivo que aparecem com "—" na tabela de registros.
-
-### Importar histórico do Google Sheets
-Exporte a planilha como CSV e execute:
-```bash
-docker compose exec web python scripts/import_sheets_csv.py caminho/arquivo.csv --email seu@email.com
+npm install
+cp .dev.vars.example .dev.vars   # e troque o SESSION_SECRET
+npm run dev
 ```
 
 ---
@@ -328,203 +193,108 @@ docker compose exec web python scripts/import_sheets_csv.py caminho/arquivo.csv 
 ## ✅ Testes
 
 ```bash
-pip install -r requirements.txt -r requirements-dev.txt
+# No container (sobe o Postgres se preciso): lint, tipos e testes com cobertura
+docker compose run --rm test
 
-# opção 1: contra um Postgres já rodando (ex.: docker compose up -d db)
-export DATABASE_URL=postgresql://postgres:postgres@localhost:5432/ponto_test
-export SECRET_KEY=test
-
-pytest --cov=app --cov-report=term-missing
-ruff check .
-
-# opção 2: tudo isolado em containers (sobe um Postgres só para os testes)
-docker compose -f docker-compose.test.yml up --build --abort-on-container-exit
+# Fora do Docker, com um Postgres local
+npm test
+npm run test:cobertura
+npm run lint        # npm run lint:corrigir aplica as correções
+npm run typecheck
 ```
 
-Estratégia:
-- **Unitários**: cálculo de horas (inclusive virada de meia-noite), dia da semana, agregações do dashboard.
-- **Integração**: autenticação, ciclo completo do ponto, CRUD de registros, validações.
-- **Segurança/isolamento**: um usuário não acessa registros de outro.
-- Os testes rodam contra PostgreSQL (mesmo banco de produção) no CI, para evitar diferenças de comportamento.
+Os testes rodam **dentro do runtime do Workers**, e cada requisição passa pelo Worker inteiro (middlewares, sessão, CSRF, banco), como em produção. O banco de teste (`ponto_test`) é apagado e recriado a cada execução; por segurança, o nome precisa conter `test`.
 
-Meta de cobertura: **≥ 80%**.
+Cobertura mínima: 90% das linhas.
 
 ---
 
 ## 🔄 CI/CD (GitHub Actions)
 
-**`.github/workflows/ci.yml`** — em todo push ou pull request para `main` ou `develop`:
-1. Sobe um service container PostgreSQL (`ponto_test`).
-2. Instala as dependências (`requirements.txt` + `requirements-dev.txt`).
-3. Roda `ruff check` e `ruff format --check`.
-4. Roda `pytest` com cobertura, falhando o build se ficar **abaixo de 80%** (`--cov-fail-under=80`).
-5. Faz o build da imagem Docker, para garantir que o `Dockerfile` não quebrou.
+**`ci.yml`** — em todo push ou pull request para `main` ou `develop`: Biome, checagem de tipos, testes com cobertura contra um Postgres de serviço e build do Worker (`wrangler deploy --dry-run`).
 
-O mesmo `ci.yml` tem o job **`app-workers`** (app em TypeScript): Biome, checagem de tipos, testes no runtime do Workers com cobertura e build do Worker (`wrangler deploy --dry-run`).
+**`deploy.yml`** — quando o CI passa na `main` (ou à mão, em *Actions → Deploy → Run workflow*): `npx wrangler deploy` no código que o CI testou e conferência do `/health` em produção.
 
-**`.github/workflows/deploy.yml`** — disparado quando o workflow **CI** termina com sucesso na `main` (ou à mão, em *Actions → Deploy → Run workflow*):
-1. Roda `npm ci` e `npx wrangler deploy` no código que o CI testou.
-2. Confere se `https://ponto-entregador.load1.workers.dev/health` responde 200.
-
-> Como o deploy só dispara a partir da `main`, **nada é publicado automaticamente a partir da `develop` ou de branches de feature** — elas só rodam o CI.
-
-**Segredos necessários no GitHub** (*Settings → Secrets and variables → Actions*)
+Segredos do repositório (*Settings → Secrets and variables → Actions*):
 - `CLOUDFLARE_API_TOKEN` — token com o modelo *Edit Cloudflare Workers*.
-- `CLOUDFLARE_ACCOUNT_ID` — id da conta (aparece em `npx wrangler whoami`).
-
-Sem eles, o deploy é pulado com um aviso, sem falhar.
+- `CLOUDFLARE_ACCOUNT_ID` — aparece em `npx wrangler whoami`.
 
 ---
 
-## ☁️ Deploy no Cloudflare Workers
+## ☁️ Produção
 
-O app roda como um Cloudflare Worker (plano gratuito, sem hibernação) e fala com o mesmo banco do **Neon** pelo **Hyperdrive**. O passo a passo da primeira publicação, incluindo a validação antes da virada e o plano de volta, está em [`docs/migracao-workers.md`](docs/migracao-workers.md#etapa-4--deploy-passo-a-passo).
+| Peça | Onde |
+|------|------|
+| Worker `ponto-entregador` | Cloudflare (plano gratuito) |
+| Banco | Neon (Postgres) |
+| Conexão Worker → banco | Hyperdrive `ponto-entregador`, com cache desligado (o app lê logo depois de gravar) |
+| `SESSION_SECRET` | Segredo do Worker: `npx wrangler secret put SESSION_SECRET` |
 
-Depois disso, todo merge na `main` que passar no CI publica sozinho.
+### Tarefas de manutenção
 
----
-
-## 🚢 Deploy no Render + Neon (legado)
-
-> Até a remoção do app Flask, o Render fica suspenso como plano de volta. O deploy automático para o Render foi desligado na Etapa 4.
-
-A ideia: o **Neon** hospeda o Postgres (plano gratuito, não expira) e o **Render** hospeda a aplicação Flask a partir da imagem Docker do projeto (plano gratuito, mas "hiberna" após um tempo sem acessos — o primeiro request depois disso demora alguns segundos para acordar).
-
-### 1. Criar o banco no Neon
-1. Crie uma conta em [neon.tech](https://neon.tech) e um novo projeto (ex.: `ponto-entregador`).
-2. Na página do projeto, copie a **Connection string** (formato `postgresql://usuario:senha@host/banco?sslmode=require`). Essa é a variável `DATABASE_URL` de produção.
-3. O Neon já cria o banco pronto para uso — não precisa criar tabelas manualmente, as migrations (`flask db upgrade`) cuidam disso no primeiro deploy.
-
-### 2. Criar o serviço no Render
-
-**Opção A — usando o `render.yaml` deste projeto (recomendado):**
-1. No painel do Render, escolha **New → Blueprint** e aponte para o repositório no GitHub.
-2. O Render lê o `render.yaml` da raiz do projeto e já propõe o serviço configurado (Docker, `healthCheckPath: /health`, etc.).
-3. Nas variáveis marcadas como "a preencher" (`SECRET_KEY` e `DATABASE_URL`), cole os valores gerados/copiados nos passos anteriores.
-
-**Opção B — configurando manualmente:**
-1. **New → Web Service**, conecte o repositório no GitHub.
-2. **Runtime**: Docker. **Dockerfile Path**: `docker/Dockerfile`. **Docker Build Context**: `.` (raiz do projeto).
-3. **Branch**: `main` (é a partir dela que o deploy automático via GitHub Actions vai disparar).
-4. **Plan**: Free.
-5. **Health Check Path**: `/health`.
-6. Em **Environment**, adicione as variáveis:
-
-   | Variável | Valor |
-   |---|---|
-   | `FLASK_ENV` | `production` |
-   | `SECRET_KEY` | secret key |
-   | `DATABASE_URL` | a connection string do Neon |
-   | `TZ` | `America/Sao_Paulo` |
-   | `LOG_LEVEL` | `INFO` |
-
-7. Clique em **Create Web Service**. O primeiro deploy roda automaticamente e pode demorar alguns minutos (build da imagem + migrations).
-
-### 3. Deploy automático
-O `deploy.yml` não chama mais o Render (agora publica na Cloudflare). Se o Render voltar a ser usado, o *Auto-Deploy* nativo dele, ligado à `main`, faz esse papel.
-
-### 4. Testar em produção
-Acesse a URL que o Render fornece (algo como `https://ponto-entregador.onrender.com`), crie uma conta e repita o roteiro de testes manuais descrito nas seções de Fase 2 e Fase 3 deste README.
-
-### 5. Esconder a tela de inicialização do Render (Cloudflare Worker)
-
-No plano gratuito, o Render hiberna o serviço após 15 minutos sem acesso. A próxima visita espera de 30 a 60 segundos olhando a tela de log do Render. O Worker em `cloudflare-worker/` fica na frente do app. Quando o backend está dormindo, ele mostra uma tela de carregamento própria em vez da tela do Render. Quando o backend está acordado, ele repassa tudo de forma transparente.
-
-A partir daí, a URL que você usa e compartilha passa a ser a do Worker (`https://ponto-entregador.<subdominio>.workers.dev` ou um domínio próprio). O endereço `onrender.com` não passa pela Cloudflare: quem abrir esse endereço direto continua vendo a tela do Render. Veja `cloudflare-worker/README.md` para publicar.
-
----
-
-## 🌿 Fluxo de Git (branches)
-
-Como até agora tudo foi commitado direto na `main`, a partir daqui o fluxo recomendado é:
+Rodam em qualquer terminal (PowerShell, cmd, Linux, macOS) e pedem a connection string do Neon sem mostrá-la na tela:
 
 ```bash
-# 1. Criar a branch de desenvolvimento a partir da main atualizada
-git checkout main
-git pull
-git checkout -b develop
-git push -u origin develop
+npm run migrar           # aplica db/migrations no Neon (seguro rodar de novo)
+npm run redefinir-senha  # define uma nova senha para uma conta
 ```
 
-No GitHub, em **Settings → Branches**, vale configurar:
-- `main` como **branch protegida**: exigir Pull Request antes do merge, exigir que o check do CI passe.
-- `develop` como a branch padrão de trabalho: novas features nascem a partir dela (`git checkout -b feature/nome-da-feature develop`) e voltam para ela via PR.
+Uma migração nova vai em `db/migrations/NNNN_descricao.sql`, escrita para poder rodar de novo sem efeito (`IF NOT EXISTS`). Aplique no Neon com `npm run migrar` **antes** do merge que depende dela.
 
-Fluxo do dia a dia:
-```bash
-git checkout develop
-git pull
-git checkout -b feature/exportar-csv
+### Limite de CPU do plano gratuito
 
-# ... commits ...
-
-git push -u origin feature/exportar-csv
-# abrir PR: feature/exportar-csv -> develop (CI roda automaticamente)
-```
-
-Quando `develop` estiver estável e pronta para ir ao ar, abre-se um PR `develop -> main`. Ao ser mesclado, o CI roda de novo na `main` e, se passar, o `deploy.yml` dispara o deploy no Render automaticamente — nenhum push direto na `main` deveria mais ser necessário.
+O plano gratuito permite 10 ms de CPU por requisição, e o bcrypt de custo 10 gasta cerca de 80 ms. Só cadastro e login calculam bcrypt, e a Cloudflare tolera estouros ocasionais. Se o login começar a responder **erro 1102**, as saídas são reduzir `BCRYPT_COST` no `wrangler.jsonc` (menos seguro) ou o plano Workers Paid.
 
 ---
 
 ## 📈 Logs
 
-- Biblioteca padrão `logging`, configurada em `app/logging_config.py`.
-- **Desenvolvimento**: formato legível no console.
-- **Produção**: JSON em `stdout`, que o Render coleta e exibe no painel.
-- Registrados: requisições (método, rota, status, tempo, `user_id`), eventos de negócio (entrada, saída, criação/edição/exclusão de registros), tentativas de login falhas e erros com *stack trace*.
-- Nunca são logados: senhas, tokens ou dados sensíveis.
-- Nível controlado por `LOG_LEVEL`.
+- Cada requisição gera uma linha JSON (`metodo`, `caminho`, `status`, `ms`, `user_id`), além de eventos de negócio (entrada, saída, registros, login falho) e erros.
+- Ficam no painel da Cloudflare: **Workers & Pages → ponto-entregador → Logs**. Em tempo real: `npx wrangler tail ponto-entregador`.
+- Nunca são logados: senhas, cookies ou dados sensíveis.
 
 ---
 
 ## 🔒 Segurança
-- Senhas com hash (Werkzeug).
-- Proteção CSRF em formulários e chamadas `fetch`.
-- Cookies de sessão `HttpOnly`, `Secure` e `SameSite=Lax` em produção.
-- Validação de entrada no servidor (nunca só no frontend).
-- Consultas via ORM (proteção contra SQL injection).
-- Limite de tentativas de login (Flask-Limiter, opcional).
+- Senhas com bcrypt.
+- Cookie de sessão assinado, `HttpOnly`, `Secure` e `SameSite=Lax`. Trocar a senha encerra as sessões abertas.
+- Checagem de origem (CSRF) nas rotas `/api/*`.
+- Cabeçalhos de segurança em todas as respostas.
+- Validação de entrada no servidor e consultas parametrizadas.
+- Toda consulta filtra pelo usuário da sessão; registro de outra conta responde 404.
 
 ---
 
-## 🗺️ Roadmap
+## 🌿 Fluxo de Git
 
-**Fase 1 — Base**
-- [x] Repositório, estrutura, Docker Compose, Postgres
-- [x] Modelos e migrações
-- [x] Autenticação
+```bash
+git switch main
+git pull
+git switch -c feature/nome-da-feature
 
-**Fase 2 — Funcionalidade principal**
-- [x] API e tela do ponto (entrada → saída → ganhos/custos)
-- [x] Modal (+) de registro manual
-- [x] Tabela de registros com edição e exclusão
+# ... commits ...
 
-**Fase 3 — Dashboard**
-- [x] Endpoint de métricas
-- [x] Filtro de mês e semana, cards e gráfico de ganhos diários
+git push -u origin feature/nome-da-feature
+# abrir PR para a main: o CI roda; depois do merge, o deploy é automático
+```
 
-**Fase 4 — Qualidade e entrega**
-- [x] Testes unitários e de integração (47 testes, ~94% de cobertura)
-- [x] Logs estruturados
-- [x] CI/CD (GitHub Actions) e deploy no Render + Neon
-- [ ] Importação do histórico do Google Sheets
+Crie a branch **antes** de editar: commits feitos direto na `main` local precisam ser movidos depois.
+
+---
+
+## 🗺️ Histórico e ideias
+
+O app nasceu em Flask no Render e foi migrado para Cloudflare Workers para acabar com a espera de 30 a 60 s do Render acordando. O plano e as decisões estão em [`docs/migracao-workers.md`](docs/migracao-workers.md).
 
 **Ideias futuras**
 - PWA (instalar no celular)
+- Importar o histórico do Google Sheets
 - Metas diárias/mensais
 - Exportar registros em CSV
-- Separar ganhos por plataforma (iFood, Uber Eats, etc.)
+- Separar ganhos por plataforma (iFood, Uber Eats etc.)
 - Custos detalhados (combustível, manutenção)
 
 ---
 
 ## 📄 Licença
-MIT License
-
-Copyright (c) 2026 Vinicius Silva
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+MIT. Veja [`LICENSE`](LICENSE).

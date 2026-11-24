@@ -1,8 +1,8 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  // Mesmo nome do antigo Worker proxy do Render: o deploy substitui o proxy e
-  // mantém a URL ponto-entregador.<subdomínio>.workers.dev.
-  // Para validar antes da virada: npx wrangler deploy --name ponto-entregador-v2
+  // Publicado em https://ponto-entregador.load1.workers.dev.
+  // Para testar uma mudança sem mexer em produção:
+  //   npx wrangler deploy --name ponto-entregador-v2
   "name": "ponto-entregador",
   "main": "src/index.ts",
   "compatibility_date": "2026-11-01",
