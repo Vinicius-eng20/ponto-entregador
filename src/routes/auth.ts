@@ -27,7 +27,9 @@ function log(evento: string, dados: Record<string, unknown> = {}) {
 rotasAuth.post("/register", async (c) => {
   const dados = await lerJson(c.req.raw);
   const nome = String(dados.name ?? "").trim();
-  const email = String(dados.email ?? "").trim().toLowerCase();
+  const email = String(dados.email ?? "")
+    .trim()
+    .toLowerCase();
   const senha = String(dados.password ?? "");
   const confirmacao = String(dados.password_confirm ?? "");
 
@@ -68,7 +70,9 @@ rotasAuth.post("/register", async (c) => {
 
 rotasAuth.post("/login", async (c) => {
   const dados = await lerJson(c.req.raw);
-  const email = String(dados.email ?? "").trim().toLowerCase();
+  const email = String(dados.email ?? "")
+    .trim()
+    .toLowerCase();
   const senha = String(dados.password ?? "");
 
   const db: Client = await c.get("db")();

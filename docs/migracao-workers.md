@@ -30,7 +30,7 @@ milissegundos a qualquer momento.
   por página, mais recentes primeiro); filtro de mês aberto no mês atual;
   semanas reais de domingo a sábado, incluindo dias de meses vizinhos; KPIs de
   dia mais e menos lucrativo (lucro = ganhos − custos do dia).
-- [ ] **Etapa 3 — Testes:** Vitest no runtime do Workers contra o Postgres do
+- [x] **Etapa 3 — Testes:** Vitest no runtime do Workers contra o Postgres do
   container; porte dos testes atuais e testes das novas funcionalidades; CI.
 - [ ] **Etapa 4 — Deploy:** GitHub Actions com `wrangler deploy`, segredos,
   Hyperdrive para o Neon, virada de URL, Render parado como plano de volta e
@@ -136,6 +136,34 @@ um volume já existente, ou no Neon antes do deploy:
 ```bash
 psql "$DATABASE_URL" -f db/migrations/0002_indice_registros_por_data.sql
 ```
+
+## Testes
+
+Vitest rodando **dentro do runtime do Workers** (`@cloudflare/vitest-plugin`),
+contra um Postgres de verdade. As requisições passam pelo Worker inteiro
+(middlewares, sessão, CSRF, banco), como em produção.
+
+```bash
+# No container (sobe o Postgres se preciso): lint, tipos e testes com cobertura
+docker compose -f docker-compose.workers.yml run --rm test
+
+# Fora do Docker, com um Postgres local
+TEST_DATABASE_URL=postgresql://postgres:postgres@localhost:5433/ponto_test npm test
+npm run test:cobertura
+npm run lint        # Biome (lint e formatação); npm run lint:corrigir aplica as correções
+npm run typecheck   # app e testes
+```
+
+O banco de teste é **apagado e recriado** a cada execução, com as migrações
+de `db/migrations`. Por segurança, o nome dele precisa conter `test`.
+
+| Pasta | Conteúdo |
+|---|---|
+| `test/unit/` | Funções puras: horário e fuso, horas trabalhadas, validação de valores, datas e horários, semanas do mês, formato da API |
+| `test/integracao/` | API pelo Worker: cadastro, login, sessão e cookie, ponto, registros e paginação, dashboard e semanas, isolamento entre contas, CSRF |
+| `test/helpers.ts` | Cliente HTTP com cookies, SQL direto no banco de teste, criação de contas e turnos |
+
+No CI (job `app-workers`), a cobertura mínima é de 90% das linhas.
 
 ## Rodando localmente
 

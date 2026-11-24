@@ -94,7 +94,12 @@ app.onError((erro, c) => {
   }
 
   console.error(
-    JSON.stringify({ evento: "erro_interno", caminho: c.req.path, erro: String(erro), stack: (erro as Error).stack }),
+    JSON.stringify({
+      evento: "erro_interno",
+      caminho: c.req.path,
+      erro: String(erro),
+      stack: (erro as Error).stack,
+    }),
   );
   return c.req.path.startsWith("/api/")
     ? c.json({ error: "internal_error", message: "Erro interno do servidor." }, 500)

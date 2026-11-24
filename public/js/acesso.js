@@ -12,7 +12,8 @@ document.addEventListener("DOMContentLoaded", () => {
     evento.preventDefault();
     erro.textContent = "";
     botao.disabled = true;
-    botao.textContent = formulario.dataset.acesso === "cadastro" ? "Criando conta..." : "Entrando...";
+    botao.textContent =
+      formulario.dataset.acesso === "cadastro" ? "Criando conta..." : "Entrando...";
 
     const dados = Object.fromEntries(new FormData(formulario));
     try {

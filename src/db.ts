@@ -21,11 +21,21 @@ pg.types.setTypeParser(1700, (valor: string) => Number(valor)); // NUMERIC -> nu
 export const conexaoPorRequisicao: MiddlewareHandler<AppEnv> = async (c, next) => {
   let cliente: pg.Client | null = null;
   let conectando: Promise<pg.Client> | null = null;
+  let encerrando = false;
 
   c.set("db", () => {
     if (!conectando) {
-      cliente = new pg.Client({ connectionString: c.env.HYPERDRIVE.connectionString });
-      const atual = cliente;
+      const atual = new pg.Client({ connectionString: c.env.HYPERDRIVE.connectionString });
+      // Ao fechar, o driver do Workers (pg-cloudflare) ainda está lendo o
+      // socket e emite "This socket has been closed". Sem um ouvinte, esse
+      // evento vira um erro não tratado. Ignoramos só o que acontece durante
+      // o encerramento que nós pedimos; o resto vai para o log.
+      atual.on("error", (erro) => {
+        if (!encerrando) {
+          console.error(JSON.stringify({ evento: "erro_conexao_banco", erro: String(erro) }));
+        }
+      });
+      cliente = atual;
       conectando = atual.connect().then(() => atual);
     }
     return conectando;
@@ -36,6 +46,7 @@ export const conexaoPorRequisicao: MiddlewareHandler<AppEnv> = async (c, next) =
   } finally {
     if (cliente) {
       const aberto: pg.Client = cliente;
+      encerrando = true;
       c.executionCtx.waitUntil(aberto.end().catch(() => undefined));
     }
   }

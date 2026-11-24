@@ -2,7 +2,6 @@ import { Hono } from "hono";
 
 import { AppError } from "../lib/errors";
 import { lerJson } from "../lib/validacao";
-import { usuarioAtual } from "../sessao";
 import { dadosDashboard, mesesDisponiveis } from "../services/dashboard";
 import { concluirTurno, obterStatus, registrarEntrada, registrarSaida } from "../services/ponto";
 import {
@@ -11,6 +10,7 @@ import {
   excluirRegistro,
   listarRegistros,
 } from "../services/registros";
+import { usuarioAtual } from "../sessao";
 import type { AppEnv } from "../types";
 
 /** Rotas da API que exigem sessão (o middleware é aplicado em index.ts). */
@@ -22,7 +22,8 @@ function log(evento: string, dados: Record<string, unknown>) {
 
 function idDaRota(valor: string): number {
   const id = Number(valor);
-  if (!Number.isInteger(id) || id <= 0) throw new AppError("Registro não encontrado.", 404, "not_found");
+  if (!Number.isInteger(id) || id <= 0)
+    throw new AppError("Registro não encontrado.", 404, "not_found");
   return id;
 }
 
@@ -109,7 +110,12 @@ rotasApi.get("/dashboard/months", async (c) => {
 rotasApi.get("/dashboard", async (c) => {
   const ano = Number(c.req.query("year"));
   const mes = Number(c.req.query("month"));
-  if (!Number.isInteger(ano) || !Number.isInteger(mes) || !c.req.query("year") || !c.req.query("month")) {
+  if (
+    !Number.isInteger(ano) ||
+    !Number.isInteger(mes) ||
+    !c.req.query("year") ||
+    !c.req.query("month")
+  ) {
     throw new AppError("Informe ano e mês válidos.", 400, "invalid_params");
   }
 

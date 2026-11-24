@@ -2,6 +2,7 @@
 // independente do fuso do aparelho.
 const FUSO = "America/Sao_Paulo";
 
+// biome-ignore lint/correctness/noUnusedVariables: usado pelos outros scripts da página
 const Formato = {
   moeda(valor) {
     return Number(valor ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });

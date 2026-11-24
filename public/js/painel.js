@@ -128,8 +128,14 @@
       }
 
       tr.append(
-        celula(r.earnings === null ? "—" : Formato.moeda(r.earnings), `text-end ${r.earnings === null ? "" : "valor-ganho"}`),
-        celula(r.costs === null ? "—" : Formato.moeda(r.costs), `text-end ${r.costs === null ? "" : "valor-custo"}`),
+        celula(
+          r.earnings === null ? "—" : Formato.moeda(r.earnings),
+          `text-end ${r.earnings === null ? "" : "valor-ganho"}`,
+        ),
+        celula(
+          r.costs === null ? "—" : Formato.moeda(r.costs),
+          `text-end ${r.costs === null ? "" : "valor-custo"}`,
+        ),
         celula(r.worked_hours ?? "—", "text-end"),
       );
 
@@ -137,7 +143,9 @@
       acoes.className = "acoes";
       acoes.append(
         botaoAcao("bi-pencil", `Editar turno de ${Formato.data(r.date)}`, "", () => abrirEdicao(r)),
-        botaoAcao("bi-trash3", `Excluir turno de ${Formato.data(r.date)}`, "excluir", () => abrirExclusao(r)),
+        botaoAcao("bi-trash3", `Excluir turno de ${Formato.data(r.date)}`, "excluir", () =>
+          abrirExclusao(r),
+        ),
       );
       tr.append(acoes);
       corpo.append(tr);

@@ -25,7 +25,9 @@ function segredo(c: Context<AppEnv>): string {
  */
 async function impressaoDaSenha(hash: string): Promise<string> {
   const bytes = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(hash));
-  return [...new Uint8Array(bytes).slice(0, 8)].map((b) => b.toString(16).padStart(2, "0")).join("");
+  return [...new Uint8Array(bytes).slice(0, 8)]
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
 }
 
 function cookieSeguro(c: Context<AppEnv>): boolean {
