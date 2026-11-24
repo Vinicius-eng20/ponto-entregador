@@ -1,17 +1,82 @@
 name: Deploy
 
+# Publica o Worker na Cloudflare depois que o CI passa na main.
+# Também pode ser disparado à mão em Actions > Deploy > Run workflow.
+#
+# Segredos do repositório (Settings > Secrets and variables > Actions):
+#   CLOUDFLARE_API_TOKEN   token com o modelo "Edit Cloudflare Workers"
+#   CLOUDFLARE_ACCOUNT_ID  id da conta (painel da Cloudflare > Workers & Pages)
+# Sem eles, o deploy é pulado com um aviso, sem falhar.
+
 on:
   workflow_run:
     workflows: ["CI"]
     branches: ["main"]
     types: [completed]
+  workflow_dispatch:
+
+# Um deploy por vez, na ordem em que chegaram.
+concurrency:
+  group: deploy-producao
+  cancel-in-progress: false
+
+env:
+  APP_URL: https://ponto-entregador.load1.workers.dev
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
     steps:
-      - name: Disparar deploy no Render
+      - name: Conferir segredos da Cloudflare
+        id: segredos
         run: |
-          curl -fsS -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "::notice::Deploy pulado: defina CLOUDFLARE_API_TOKEN e CLOUDFLARE_ACCOUNT_ID nos segredos do repositório."
+            echo "configurados=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "configurados=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout do código testado pelo CI
+        if: steps.segredos.outputs.configurados == 'true'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Conferir o id do Hyperdrive
+        if: steps.segredos.outputs.configurados == 'true'
+        run: |
+          if grep -q '"id": "00000000000000000000000000000000"' wrangler.jsonc; then
+            echo "::error::Troque o id do Hyperdrive em wrangler.jsonc pelo id gerado no 'wrangler hyperdrive create'."
+            exit 1
+          fi
+
+      - name: Configurar Node
+        if: steps.segredos.outputs.configurados == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Instalar dependências
+        if: steps.segredos.outputs.configurados == 'true'
+        run: npm ci
+
+      - name: Publicar na Cloudflare
+        if: steps.segredos.outputs.configurados == 'true'
+        run: npx wrangler deploy
+
+      - name: Conferir o app no ar (/health)
+        if: steps.segredos.outputs.configurados == 'true'
+        run: |
+          for tentativa in 1 2 3 4 5 6; do
+            if curl -fsS "$APP_URL/health"; then echo; exit 0; fi
+            sleep 5
+          done
+          echo "::error::$APP_URL/health não respondeu 200 depois do deploy. Veja os logs em Workers & Pages > ponto-entregador > Logs."
+          exit 1

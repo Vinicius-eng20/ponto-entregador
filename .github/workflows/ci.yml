@@ -120,3 +120,6 @@ jobs:
 
       - name: Testes com cobertura (Vitest no runtime do Workers)
         run: npm run test:cobertura
+
+      - name: Build do Worker (sem publicar)
+        run: npx wrangler deploy --dry-run --outdir dist
