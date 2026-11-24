@@ -1,32 +1,16 @@
-# Ambiente
-.env
-.venv/
-venv/
-env/
+# Dependências
+node_modules/
 
-# Python
-__pycache__/
-*.py[cod]
-*.egg-info/
-.eggs/
-build/
+# Cloudflare Workers
+.wrangler/
+.dev.vars
 dist/
 
 # Testes / cobertura
-.pytest_cache/
-.coverage
-.coverage.*
-htmlcov/
-coverage.xml
+coverage/
 
-# Ruff
-.ruff_cache/
-
-# Banco de dados local (se usado fora do docker)
-*.sqlite3
-*.db
-
-# Docker
+# Ambiente local
+.env
 *.log
 
 # Editor / SO
@@ -34,12 +18,3 @@ coverage.xml
 .idea/
 .DS_Store
 Thumbs.db
-
-# Migrations geradas localmente durante desenvolvimento experimental
-# (comente esta linha se quiser versionar migrations)
-# migrations/versions/*.pyc
-
-# Node / Cloudflare Workers
-node_modules/
-.wrangler/
-.dev.vars

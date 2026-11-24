@@ -14,7 +14,7 @@ milissegundos a qualquer momento.
 | Plano Cloudflare | Gratuito (decisão da Etapa 1). Ver "bcrypt e o limite de CPU" abaixo |
 | Sessão / CSRF | Cookie assinado (`HttpOnly`, `Secure`, `SameSite=Lax`) + checagem de origem |
 | Migrações de banco | Arquivos `.sql` versionados em `db/migrations/` (substituem o Alembic) |
-| Ambiente local | `docker-compose.workers.yml`: Postgres + `wrangler dev`. Em produção não há container |
+| Ambiente local | `docker-compose.yml`: Postgres + `wrangler dev`. Em produção não há container |
 | Logs | Workers Logs (`observability` no `wrangler.jsonc`), em JSON |
 | URL final | `ponto-entregador.load1.workers.dev` (o app substitui o Worker proxy com o mesmo nome) |
 
@@ -32,11 +32,11 @@ milissegundos a qualquer momento.
   dia mais e menos lucrativo (lucro = ganhos − custos do dia).
 - [x] **Etapa 3 — Testes:** Vitest no runtime do Workers contra o Postgres do
   container; porte dos testes atuais e testes das novas funcionalidades; CI.
-- [ ] **Etapa 4 — Deploy:** GitHub Actions com `wrangler deploy`, segredos,
-  Hyperdrive para o Neon, virada de URL, Render parado como plano de volta e
-  remoção do código Python depois disso. Código pronto; falta executar o
-  [passo a passo](#etapa-4--deploy-passo-a-passo) e, depois de 1 a 2 semanas
-  sem problemas, remover o Flask.
+- [x] **Etapa 4 — Deploy:** GitHub Actions com `wrangler deploy`, segredos,
+  Hyperdrive para o Neon e virada de URL (24/11/2026).
+- [x] **Limpeza:** app Flask, testes Python, Alembic, `Dockerfile` e
+  `render.yaml` do Render e o Worker proxy (`cloudflare-worker/`) removidos
+  do repositório.
 
 ## Resultados da Fase 0
 
@@ -156,7 +156,7 @@ contra um Postgres de verdade. As requisições passam pelo Worker inteiro
 
 ```bash
 # No container (sobe o Postgres se preciso): lint, tipos e testes com cobertura
-docker compose -f docker-compose.workers.yml run --rm test
+docker compose run --rm test
 
 # Fora do Docker, com um Postgres local
 TEST_DATABASE_URL=postgresql://postgres:postgres@localhost:5433/ponto_test npm test
@@ -178,34 +178,7 @@ No CI (job `app-workers`), a cobertura mínima é de 90% das linhas.
 
 ## Rodando localmente
 
-Requer Docker.
-
-```bash
-docker compose -f docker-compose.workers.yml up --build
-```
-
-O `--build` só é necessário na primeira vez ou quando `docker/workers.Dockerfile`
-mudar. O `.env` da raiz pertence ao app Flask e é ignorado pelo Worker.
-
-- App: http://localhost:8787 (landing). Crie uma conta em `/cadastro`.
-- Saúde do app e do banco: http://localhost:8787/health
-- Postgres: `localhost:5433`, usuário/senha `postgres`, banco `ponto`
-
-O schema é aplicado só na criação do volume. Para recriar o banco do zero:
-
-```bash
-docker compose -f docker-compose.workers.yml down -v
-```
-
-Sem Docker (Node 22 + Postgres local na porta 5433):
-
-```bash
-npm install
-cp .dev.vars.example .dev.vars   # e troque o SESSION_SECRET
-npm run dev
-```
-
-Com o `.dev.vars` presente, o `wrangler` deixa de ler o `.env` do Flask.
+Veja a seção "Rodando localmente" do [README](../README.md#-rodando-localmente).
 
 ## Etapa 4 — Deploy (passo a passo)
 
@@ -300,17 +273,14 @@ npx wrangler delete --name ponto-entregador-v2
 
 ### 6. Render
 
-No painel do Render, suspenda o serviço (**Settings → Suspend Web Service**).
-Ele fica parado de 1 a 2 semanas como plano de volta; depois disso, saem o
-app Flask, o `Dockerfile`, o `render.yaml`, o `cloudflare-worker/` e os jobs
-Python do CI.
+Depois da virada, o serviço do Render foi suspenso e o código Flask saiu do
+repositório. O serviço no Render e o segredo `RENDER_DEPLOY_HOOK_URL` do
+GitHub não são mais usados e podem ser apagados.
 
 ### Plano de volta
 
-1. No painel da Cloudflare, **Workers & Pages → ponto-entregador →
-   Deployments**, escolha a última versão do proxy (anterior à virada) e use
-   **Rollback**. A URL volta a apontar para o Render.
-2. Retome o serviço no Render.
-3. O Flask não confere senhas bcrypt. Para uma conta redefinida no passo 4
-   entrar lá de novo, gere um hash do Werkzeug (`flask shell` →
-   `generate_password_hash("nova-senha")`) e grave em `users.password_hash`.
+Com o Flask removido, voltar ao Render exige restaurar o código de um commit
+anterior à limpeza (por exemplo, `d7440cd`). Para problemas no Worker, o
+caminho é outro: no painel da Cloudflare, **Workers & Pages →
+ponto-entregador → Deployments**, escolha uma versão anterior do app e use
+**Rollback**.
