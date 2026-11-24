@@ -4,8 +4,8 @@
 -- antiga (GET /api/records?page=N). O índice entrega as linhas já nessa
 -- ordem, sem ordenar a tabela inteira a cada página.
 --
--- Em produção (Neon), aplique uma vez antes do deploy da Etapa 2:
---   psql "$DATABASE_URL" -f db/migrations/0002_indice_registros_por_data.sql
+-- Em produção (Neon), aplique antes do deploy com:
+--   npm run migrar
 
 CREATE INDEX IF NOT EXISTS ix_work_records_user_date
     ON work_records (user_id, date DESC, start_time DESC, id DESC);

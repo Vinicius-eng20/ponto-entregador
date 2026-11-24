@@ -11,7 +11,8 @@
     "test": "vitest run",
     "test:cobertura": "vitest run --coverage",
     "bench:bcrypt": "node scripts/bench-bcrypt.mjs",
-    "redefinir-senha": "node scripts/redefinir-senha.mjs"
+    "redefinir-senha": "node scripts/redefinir-senha.mjs",
+    "migrar": "node scripts/migrar.mjs"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

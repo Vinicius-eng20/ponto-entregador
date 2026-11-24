@@ -61,7 +61,7 @@ Este projeto substitui o fluxo atual (formulário no Tally → Google Sheets →
 | Testes | pytest, pytest-cov |
 | Qualidade | Ruff (lint + format) |
 | CI/CD | GitHub Actions |
-| Deploy | Render (web service gratuito) |
+| Deploy | Cloudflare Workers (plano gratuito) + Neon via Hyperdrive. Antes: Render |
 | Versionamento | Git + GitHub |
 
 > **Por que Neon e não o Postgres do Render?** O Postgres gratuito do Render expira após um período; o Neon mantém o plano gratuito sem expirar. O web service gratuito do Render "hiberna" após inatividade, então o primeiro acesso depois de um tempo parado pode demorar alguns segundos.
@@ -360,19 +360,33 @@ Meta de cobertura: **≥ 80%**.
 4. Roda `pytest` com cobertura, falhando o build se ficar **abaixo de 80%** (`--cov-fail-under=80`).
 5. Faz o build da imagem Docker, para garantir que o `Dockerfile` não quebrou.
 
-**`.github/workflows/deploy.yml`** — disparado automaticamente quando o workflow **CI** termina com sucesso na branch `main` (usando `workflow_run`, não em toda tag verde de qualquer branch):
-1. Chama o *Deploy Hook* do Render (URL guardada em `secrets.RENDER_DEPLOY_HOOK_URL`).
-2. O Render puxa a imagem, sobe o container, que roda `scripts/entrypoint.sh` (aplica as migrations e inicia o Gunicorn).
-3. O Render usa `GET /health` para considerar o deploy saudável antes de trocar o tráfego.
+O mesmo `ci.yml` tem o job **`app-workers`** (app em TypeScript): Biome, checagem de tipos, testes no runtime do Workers com cobertura e build do Worker (`wrangler deploy --dry-run`).
 
-> Como o deploy só dispara a partir da `main`, **nada é publicado automaticamente a partir da `develop` ou de branches de feature** — elas só rodam o CI (lint + testes).
+**`.github/workflows/deploy.yml`** — disparado quando o workflow **CI** termina com sucesso na `main` (ou à mão, em *Actions → Deploy → Run workflow*):
+1. Roda `npm ci` e `npx wrangler deploy` no código que o CI testou.
+2. Confere se `https://ponto-entregador.load1.workers.dev/health` responde 200.
 
-**Segredo necessário no GitHub**
-- `RENDER_DEPLOY_HOOK_URL` — em *Settings → Secrets and variables → Actions* do repositório.
+> Como o deploy só dispara a partir da `main`, **nada é publicado automaticamente a partir da `develop` ou de branches de feature** — elas só rodam o CI.
+
+**Segredos necessários no GitHub** (*Settings → Secrets and variables → Actions*)
+- `CLOUDFLARE_API_TOKEN` — token com o modelo *Edit Cloudflare Workers*.
+- `CLOUDFLARE_ACCOUNT_ID` — id da conta (aparece em `npx wrangler whoami`).
+
+Sem eles, o deploy é pulado com um aviso, sem falhar.
 
 ---
 
-## 🚢 Deploy no Render + Neon
+## ☁️ Deploy no Cloudflare Workers
+
+O app roda como um Cloudflare Worker (plano gratuito, sem hibernação) e fala com o mesmo banco do **Neon** pelo **Hyperdrive**. O passo a passo da primeira publicação, incluindo a validação antes da virada e o plano de volta, está em [`docs/migracao-workers.md`](docs/migracao-workers.md#etapa-4--deploy-passo-a-passo).
+
+Depois disso, todo merge na `main` que passar no CI publica sozinho.
+
+---
+
+## 🚢 Deploy no Render + Neon (legado)
+
+> Até a remoção do app Flask, o Render fica suspenso como plano de volta. O deploy automático para o Render foi desligado na Etapa 4.
 
 A ideia: o **Neon** hospeda o Postgres (plano gratuito, não expira) e o **Render** hospeda a aplicação Flask a partir da imagem Docker do projeto (plano gratuito, mas "hiberna" após um tempo sem acessos — o primeiro request depois disso demora alguns segundos para acordar).
 
@@ -406,12 +420,8 @@ A ideia: o **Neon** hospeda o Postgres (plano gratuito, não expira) e o **Rende
 
 7. Clique em **Create Web Service**. O primeiro deploy roda automaticamente e pode demorar alguns minutos (build da imagem + migrations).
 
-### 3. Habilitar o deploy automático via GitHub Actions
-1. No serviço já criado, vá em **Settings → Deploy Hook** e copie a URL.
-2. No GitHub, vá em **Settings → Secrets and variables → Actions** do repositório e crie o secret `RENDER_DEPLOY_HOOK_URL` com essa URL.
-3. Pronto: a partir de agora, todo merge na `main` que passar no CI dispara automaticamente um novo deploy (veja `.github/workflows/deploy.yml`).
-
-> Se você usou a Opção A (Blueprint), o Render já cuida do deploy contínuo nativamente ao detectar pushes na `main` — o `deploy.yml` neste caso é redundante, mas inofensivo (só teria efeito prático se você desligar o "Auto-Deploy" nativo do Render e preferir controlar isso só pelo GitHub Actions).
+### 3. Deploy automático
+O `deploy.yml` não chama mais o Render (agora publica na Cloudflare). Se o Render voltar a ser usado, o *Auto-Deploy* nativo dele, ligado à `main`, faz esse papel.
 
 ### 4. Testar em produção
 Acesse a URL que o Render fornece (algo como `https://ponto-entregador.onrender.com`), crie uma conta e repita o roteiro de testes manuais descrito nas seções de Fase 2 e Fase 3 deste README.

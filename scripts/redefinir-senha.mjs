@@ -3,81 +3,56 @@
 // As senhas do app Flask usam scrypt do Werkzeug, que o Worker não confere.
 // Rode este script uma vez por conta para migrar. Ele também encerra as
 // sessões abertas da conta, porque o cookie de sessão depende do hash.
+// Os registros de ponto não são alterados.
 //
-// Uso:
-//   DATABASE_URL="postgresql://...neon.tech/neondb?sslmode=require" \
-//     node scripts/redefinir-senha.mjs voce@email.com
+// Uso (qualquer terminal, inclusive PowerShell e cmd):
+//   npm run redefinir-senha
 //
-// A senha é pedida no terminal (não aparece na tela nem no histórico).
-import { createInterface } from "node:readline";
+// O script pergunta a connection string do Neon, o e-mail da conta e a nova
+// senha (duas vezes). Nada do que é secreto aparece na tela ou no histórico.
+// Opcionais: o e-mail como argumento (npm run redefinir-senha -- voce@email.com)
+// e a connection string na variável DATABASE_URL.
 import bcrypt from "bcryptjs";
-import pg from "pg";
+
+import { conectar, ErroDeUso, executar, urlDoBanco } from "./lib/banco.mjs";
+import { perguntar } from "./lib/terminal.mjs";
 
 const CUSTO = Number(process.env.BCRYPT_COST ?? 10);
 
-/**
- * Pergunta as senhas no terminal sem mostrar o que é digitado. Uma única
- * interface para as duas perguntas: com duas, a primeira pode consumir a
- * linha da segunda.
- */
-function perguntarSenhas(perguntas) {
-  const rl = createInterface({ input: process.stdin, output: process.stdout, terminal: true });
-  let pergunta = "";
-  rl._writeToOutput = (texto) => {
-    if (texto.includes(pergunta)) rl.output.write(pergunta);
-  };
-  const respostas = [];
-  return new Promise((resolve) => {
-    const proxima = () => {
-      if (respostas.length === perguntas.length) {
-        rl.close();
-        return resolve(respostas);
-      }
-      pergunta = perguntas[respostas.length];
-      rl.question(pergunta, (resposta) => {
-        process.stdout.write("\n");
-        respostas.push(resposta);
-        proxima();
-      });
-    };
-    proxima();
-  });
-}
-
-const email = (process.argv[2] ?? "").trim().toLowerCase();
-const url = process.env.DATABASE_URL;
-
-if (!email || !url) {
-  console.error("Uso: DATABASE_URL=... node scripts/redefinir-senha.mjs <email>");
-  process.exit(1);
-}
-
-const db = new pg.Client({ connectionString: url });
-await db.connect();
-
-try {
-  const { rows } = await db.query("SELECT id, name FROM users WHERE email = $1", [email]);
-  if (rows.length === 0) {
-    console.error(`Nenhuma conta com o e-mail ${email}.`);
-    process.exit(1);
+await executar(async () => {
+  const url = await urlDoBanco();
+  let email = (process.argv[2] ?? "").trim().toLowerCase();
+  if (!email) {
+    [email] = await perguntar([{ texto: "E-mail da conta: " }]);
+    email = email.toLowerCase();
   }
+  if (!email) throw new ErroDeUso("Informe o e-mail da conta.");
 
-  const [senha, confirmacao] = process.env.NOVA_SENHA
-    ? [process.env.NOVA_SENHA, process.env.NOVA_SENHA]
-    : await perguntarSenhas(["Nova senha: ", "Repita a nova senha: "]);
+  const db = await conectar(url);
+  try {
+    const { rows } = await db.query("SELECT id, name FROM users WHERE email = $1", [email]);
+    if (rows.length === 0) {
+      throw new ErroDeUso(`Nenhuma conta com o e-mail ${email} nesse banco.`);
+    }
 
-  if (senha !== confirmacao) {
-    console.error("As senhas não coincidem. Nada foi alterado.");
-    process.exit(1);
+    const [senha, confirmacao] = process.env.NOVA_SENHA
+      ? [process.env.NOVA_SENHA, process.env.NOVA_SENHA]
+      : await perguntar([
+          { texto: "Nova senha: ", oculta: true },
+          { texto: "Repita a nova senha: ", oculta: true },
+        ]);
+
+    if (senha !== confirmacao) {
+      throw new ErroDeUso("As senhas não coincidem. Nada foi alterado.");
+    }
+    if (senha.length < 6 || new TextEncoder().encode(senha).length > 72) {
+      throw new ErroDeUso("A senha deve ter entre 6 e 72 caracteres. Nada foi alterado.");
+    }
+
+    const hash = await bcrypt.hash(senha, CUSTO);
+    await db.query("UPDATE users SET password_hash = $1 WHERE id = $2", [hash, rows[0].id]);
+    console.log(`Senha de ${rows[0].name} (${email}) redefinida com bcrypt, custo ${CUSTO}.`);
+  } finally {
+    await db.end();
   }
-  if (senha.length < 6 || new TextEncoder().encode(senha).length > 72) {
-    console.error("A senha deve ter entre 6 e 72 caracteres. Nada foi alterado.");
-    process.exit(1);
-  }
-
-  const hash = await bcrypt.hash(senha, CUSTO);
-  await db.query("UPDATE users SET password_hash = $1 WHERE id = $2", [hash, rows[0].id]);
-  console.log(`Senha de ${rows[0].name} (${email}) redefinida com bcrypt, custo ${CUSTO}.`);
-} finally {
-  await db.end();
-}
+});

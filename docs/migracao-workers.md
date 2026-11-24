@@ -34,7 +34,9 @@ milissegundos a qualquer momento.
   container; porte dos testes atuais e testes das novas funcionalidades; CI.
 - [ ] **Etapa 4 — Deploy:** GitHub Actions com `wrangler deploy`, segredos,
   Hyperdrive para o Neon, virada de URL, Render parado como plano de volta e
-  remoção do código Python depois disso.
+  remoção do código Python depois disso. Código pronto; falta executar o
+  [passo a passo](#etapa-4--deploy-passo-a-passo) e, depois de 1 a 2 semanas
+  sem problemas, remover o Flask.
 
 ## Resultados da Fase 0
 
@@ -112,10 +114,15 @@ Worker: o login com eles responde "E-mail ou senha inválidos". Para cada
 conta, defina uma senha nova (os registros continuam intactos):
 
 ```bash
-DATABASE_URL="<connection string do Neon>" npm run redefinir-senha -- voce@email.com
+npm run redefinir-senha
 ```
 
-O script pede a senha duas vezes sem mostrá-la na tela.
+O script pergunta a connection string do Neon, o e-mail da conta e a nova
+senha duas vezes, sem mostrar a connection string nem a senha na tela.
+Funciona em qualquer terminal (PowerShell, cmd, Git Bash, Linux, macOS).
+
+Depois disso, o login dessa conta no app Flask para de funcionar (o Flask
+não confere bcrypt).
 
 ## Mudanças da Etapa 2 na API
 
@@ -134,8 +141,12 @@ listagem paginada. O container local aplica sozinho na criação do volume; para
 um volume já existente, ou no Neon antes do deploy:
 
 ```bash
-psql "$DATABASE_URL" -f db/migrations/0002_indice_registros_por_data.sql
+npm run migrar
 ```
+
+O script pergunta a connection string (ou usa `DATABASE_URL`) e aplica todos
+os arquivos de `db/migrations`, em ordem. Como as migrações usam
+`IF NOT EXISTS`, rodar de novo não muda nada. Não precisa do `psql`.
 
 ## Testes
 
@@ -195,3 +206,111 @@ npm run dev
 ```
 
 Com o `.dev.vars` presente, o `wrangler` deixa de ler o `.env` do Flask.
+
+## Etapa 4 — Deploy (passo a passo)
+
+Os comandos rodam na pasta do projeto, em qualquer terminal (os exemplos
+funcionam no PowerShell). A ordem importa: a URL de produção só muda no
+passo 5, e até lá o Render continua atendendo.
+
+### 1. Preparar
+
+```bash
+npm ci
+npx wrangler login      # abre o navegador para autorizar sua conta Cloudflare
+npx wrangler whoami     # mostra o Account ID, usado no passo 5
+```
+
+### 2. Banco (Neon)
+
+```bash
+npm run migrar
+```
+
+Cole a connection string do Neon quando o script pedir. Ela aplica o índice
+da Etapa 2; as tabelas e os dados não mudam.
+
+### 3. Hyperdrive
+
+No painel do Neon, em **Connect**, copie a connection string **sem** a opção
+*Connection pooling* (o Hyperdrive já faz o pool) e apague o trecho a partir
+do `?` (o Hyperdrive sempre usa TLS). Então:
+
+```bash
+npx wrangler hyperdrive create ponto-entregador --caching-disabled --connection-string="postgresql://USUARIO:SENHA@ep-xxxx.sa-east-1.aws.neon.tech/neondb"
+```
+
+O cache fica desligado porque o app lê logo depois de gravar (bater o ponto
+e ver o turno aberto); com cache, a tela poderia mostrar dados de até 60 s
+atrás. Copie o `id` que o comando mostra para `hyperdrive[0].id` no
+`wrangler.jsonc` e faça commit dessa linha (o id não é segredo).
+
+### 4. Validar sem mexer em produção
+
+Publique uma cópia com outro nome:
+
+```bash
+npx wrangler deploy --name ponto-entregador-v2
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+npx wrangler secret put SESSION_SECRET --name ponto-entregador-v2   # cole o valor gerado acima
+npm run redefinir-senha
+```
+
+Abra `https://ponto-entregador-v2.load1.workers.dev`:
+
+1. `/health` responde `{"status":"ok","banco":"ok"}`.
+2. Entre com a senha nova. Os registros antigos aparecem na tabela e no
+   dashboard.
+3. Bata o ponto, encerre o turno, edite e apague o registro de teste.
+4. **CPU do login:** no painel da Cloudflare, **Workers & Pages →
+   ponto-entregador-v2 → Logs**, abra a requisição `POST /api/auth/login` e
+   veja o tempo de CPU. O plano gratuito permite 10 ms por requisição e o
+   bcrypt de custo 10 gasta cerca de 80 ms. A Cloudflare tolera estouros
+   ocasionais (e o login é raro, a sessão dura 30 dias), mas, se o login
+   devolver **erro 1102 "Worker exceeded resource limits"**, pare aqui. As
+   saídas são reduzir `BCRYPT_COST` (menos seguro) ou o plano Workers Paid
+   (US$ 5/mês).
+
+### 5. Virar a URL
+
+Defina o segredo do Worker de produção (pode ser um valor novo):
+
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+npx wrangler secret put SESSION_SECRET
+```
+
+No GitHub, em **Settings → Secrets and variables → Actions**, crie:
+
+| Segredo | Valor |
+|---|---|
+| `CLOUDFLARE_API_TOKEN` | Painel da Cloudflare → **My Profile → API Tokens → Create Token**, modelo **Edit Cloudflare Workers** |
+| `CLOUDFLARE_ACCOUNT_ID` | O Account ID do `npx wrangler whoami` |
+
+Faça o merge da PR na `main`. Depois do CI, o workflow **Deploy** publica o
+Worker `ponto-entregador`, substituindo o proxy do Render na mesma URL, e
+confere o `/health`. Sem esperar o CI, `npx wrangler deploy` faz o mesmo.
+
+Confira `https://ponto-entregador.load1.workers.dev` e apague a cópia de
+validação:
+
+```bash
+npx wrangler delete --name ponto-entregador-v2
+```
+
+### 6. Render
+
+No painel do Render, suspenda o serviço (**Settings → Suspend Web Service**).
+Ele fica parado de 1 a 2 semanas como plano de volta; depois disso, saem o
+app Flask, o `Dockerfile`, o `render.yaml`, o `cloudflare-worker/` e os jobs
+Python do CI.
+
+### Plano de volta
+
+1. No painel da Cloudflare, **Workers & Pages → ponto-entregador →
+   Deployments**, escolha a última versão do proxy (anterior à virada) e use
+   **Rollback**. A URL volta a apontar para o Render.
+2. Retome o serviço no Render.
+3. O Flask não confere senhas bcrypt. Para uma conta redefinida no passo 4
+   entrar lá de novo, gere um hash do Werkzeug (`flask shell` →
+   `generate_password_hash("nova-senha")`) e grave em `users.password_hash`.
