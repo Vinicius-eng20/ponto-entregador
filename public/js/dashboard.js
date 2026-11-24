@@ -46,7 +46,9 @@
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        animation: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? false : { duration: 300 },
+        animation: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+          ? false
+          : { duration: 300 },
         plugins: {
           legend: { display: false },
           tooltip: {

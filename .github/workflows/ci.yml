@@ -81,6 +81,24 @@ jobs:
   app-workers:
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      # Recriado a cada execução pelo test/global-setup.ts.
+      TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ponto_test
+
     steps:
       - name: Checkout do código
         uses: actions/checkout@v4
@@ -94,5 +112,11 @@ jobs:
       - name: Instalar dependências
         run: npm ci
 
+      - name: Lint (Biome)
+        run: npm run lint
+
       - name: Checagem de tipos (TypeScript)
         run: npm run typecheck
+
+      - name: Testes com cobertura (Vitest no runtime do Workers)
+        run: npm run test:cobertura

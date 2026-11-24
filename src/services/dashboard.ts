@@ -80,7 +80,12 @@ export function semanasDoMes(ano: number, mes: number): SemanaDoMes[] {
     const fim = new Date(inicio.getTime() + 6 * DIA_MS);
     const de = isoUtc(inicio);
     const ate = isoUtc(fim);
-    semanas.push({ week: semanas.length + 1, from: de, to: ate, label: `${diaMes(de)} a ${diaMes(ate)}` });
+    semanas.push({
+      week: semanas.length + 1,
+      from: de,
+      to: ate,
+      label: `${diaMes(de)} a ${diaMes(ate)}`,
+    });
     inicio = new Date(inicio.getTime() + 7 * DIA_MS);
   }
   return semanas;

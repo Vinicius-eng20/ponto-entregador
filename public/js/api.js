@@ -2,6 +2,7 @@
  * Chamada à API do Worker. Envia e recebe JSON; em 401 (sessão expirada)
  * leva ao login; em erro, lança Error com a mensagem da API.
  */
+// biome-ignore lint/correctness/noUnusedVariables: usada pelos outros scripts da página
 async function apiFetch(url, { method = "GET", body } = {}) {
   const opcoes = { method, headers: { accept: "application/json" } };
   if (body !== undefined) {
@@ -30,6 +31,7 @@ async function apiFetch(url, { method = "GET", body } = {}) {
 }
 
 /** Mensagem curta no canto da tela. tipo: "sucesso" | "erro". */
+// biome-ignore lint/correctness/noUnusedVariables: usada pelos outros scripts da página
 function mostrarAviso(texto, tipo = "sucesso") {
   let area = document.querySelector(".avisos");
   if (!area) {
