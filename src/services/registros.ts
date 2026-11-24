@@ -17,15 +17,47 @@ function lerRegistroCompleto(dados: Record<string, unknown>) {
   ] as const;
 }
 
-/** Todos os registros do usuário, mais recentes primeiro. */
-export async function listarRegistros(db: Client, userId: number): Promise<RegistroApi[]> {
+export const REGISTROS_POR_PAGINA = 10;
+
+export interface PaginaRegistros {
+  items: RegistroApi[];
+  page: number;
+  per_page: number;
+  total: number;
+  total_pages: number;
+}
+
+/**
+ * Uma página de registros do usuário, mais recentes primeiro: data, depois
+ * horário de entrada, e o id como desempate estável entre páginas.
+ * Página além da última devolve `items` vazio com os totais corretos.
+ */
+export async function listarRegistros(
+  db: Client,
+  userId: number,
+  pagina: number,
+): Promise<PaginaRegistros> {
+  const contagem = await db.query<{ total: number }>(
+    "SELECT count(*)::int AS total FROM work_records WHERE user_id = $1",
+    [userId],
+  );
+  const total = contagem.rows[0].total;
+
   const { rows } = await db.query<LinhaRegistro>(
     `SELECT ${COLUNAS_REGISTRO} FROM work_records
       WHERE user_id = $1
-      ORDER BY date DESC, start_time DESC`,
-    [userId],
+      ORDER BY date DESC, start_time DESC, id DESC
+      LIMIT $2 OFFSET $3`,
+    [userId, REGISTROS_POR_PAGINA, (pagina - 1) * REGISTROS_POR_PAGINA],
   );
-  return rows.map(paraApi);
+
+  return {
+    items: rows.map(paraApi),
+    page: pagina,
+    per_page: REGISTROS_POR_PAGINA,
+    total,
+    total_pages: Math.max(1, Math.ceil(total / REGISTROS_POR_PAGINA)),
+  };
 }
 
 /** Registro manual (botão +): todos os campos obrigatórios. */

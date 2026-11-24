@@ -99,6 +99,16 @@
               <p class="kpi-valor numeros" id="kpi-horas">—</p>
               <p class="kpi-detalhe" id="kpi-turnos"></p>
             </div>
+            <div class="kpi kpi-ganho">
+              <p class="kpi-rotulo">Dia mais lucrativo</p>
+              <p class="kpi-valor numeros" id="kpi-melhor-dia">—</p>
+              <p class="kpi-detalhe" id="kpi-melhor-dia-data"></p>
+            </div>
+            <div class="kpi kpi-custo">
+              <p class="kpi-rotulo">Dia menos lucrativo</p>
+              <p class="kpi-valor numeros" id="kpi-pior-dia">—</p>
+              <p class="kpi-detalhe" id="kpi-pior-dia-data"></p>
+            </div>
           </div>
 
           <div class="grafico">
@@ -139,6 +149,16 @@
               Nenhum registro ainda. Bata o ponto acima ou adicione um turno de outro dia.
             </p>
           </div>
+
+          <nav class="paginacao" id="paginacao" aria-label="Páginas de registros" hidden>
+            <button class="btn btn-contorno" id="pagina-anterior" type="button">
+              <i class="bi bi-chevron-left" aria-hidden="true"></i> Anterior
+            </button>
+            <p class="paginacao-info" id="pagina-info" aria-live="polite"></p>
+            <button class="btn btn-contorno" id="pagina-proxima" type="button">
+              Próxima <i class="bi bi-chevron-right" aria-hidden="true"></i>
+            </button>
+          </nav>
         </section>
       </main>
     </div>

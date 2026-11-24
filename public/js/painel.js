@@ -58,6 +58,7 @@
       if (estadoAtual === "idle") {
         const r = await apiFetch("/api/clock/in", { method: "POST" });
         mostrarAviso(`Entrada registrada às ${r.start_time}.`);
+        paginaAtual = 1;
       } else if (estadoAtual === "working") {
         const r = await apiFetch("/api/clock/out", { method: "POST" });
         mostrarAviso(`Saída registrada às ${r.end_time}.`);
@@ -143,9 +144,39 @@
     }
   }
 
-  async function carregarRegistros() {
-    registros = await apiFetch("/api/records");
+  let paginaAtual = 1;
+
+  function desenharPaginacao(pagina) {
+    el("paginacao").hidden = pagina.total === 0;
+    el("pagina-anterior").disabled = pagina.page <= 1;
+    el("pagina-proxima").disabled = pagina.page >= pagina.total_pages;
+    const turnos = pagina.total === 1 ? "1 turno" : `${pagina.total} turnos`;
+    el("pagina-info").textContent = `Página ${pagina.page} de ${pagina.total_pages}, ${turnos}`;
+  }
+
+  /** Carrega uma página da tabela. Sem argumento, recarrega a página atual. */
+  async function carregarRegistros(pagina = paginaAtual) {
+    let resposta = await apiFetch(`/api/records?page=${pagina}`);
+    // Ao excluir o último turno de uma página, volta para a última que existe.
+    if (resposta.items.length === 0 && resposta.page > resposta.total_pages) {
+      resposta = await apiFetch(`/api/records?page=${resposta.total_pages}`);
+    }
+    paginaAtual = resposta.page;
+    registros = resposta.items;
     desenharRegistros();
+    desenharPaginacao(resposta);
+  }
+
+  el("pagina-anterior").addEventListener("click", () => mudarPagina(paginaAtual - 1));
+  el("pagina-proxima").addEventListener("click", () => mudarPagina(paginaAtual + 1));
+
+  async function mudarPagina(pagina) {
+    try {
+      await carregarRegistros(pagina);
+      el("registros").scrollIntoView({ block: "start" });
+    } catch (e) {
+      mostrarAviso(e.message, "erro");
+    }
   }
 
   // ---- Modal de adicionar / editar ----------------------------------------
@@ -198,6 +229,7 @@
       } else {
         await apiFetch("/api/records", { method: "POST", body: dados });
         mostrarAviso("Turno adicionado.");
+        paginaAtual = 1;
       }
       modalRegistro.hide();
       await Promise.all([carregarRegistros(), carregarStatus(), Dashboard.atualizar()]);

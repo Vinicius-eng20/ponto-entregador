@@ -273,7 +273,7 @@
 
 .kpis {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1rem;
 }
 
@@ -435,6 +435,21 @@
   color: var(--tinta-suave);
 }
 
+.paginacao {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.paginacao-info {
+  margin: 0;
+  color: var(--tinta-suave);
+  font-weight: 600;
+  text-align: center;
+}
+
 /* ---- Celular e tablet --------------------------------------------------- */
 
 @media (max-width: 991.98px) {
@@ -533,6 +548,14 @@
   .filtros .form-select {
     flex: 1;
     min-width: 0;
+    padding-left: 0.6rem;
+    padding-right: 1.9rem;
+    background-position: right 0.55rem center;
+  }
+
+  /* "Novembro de 2026" é mais longo que as semanas ("29/11 a 05/12"). */
+  .filtros #filtro-mes {
+    flex: 1.35;
   }
 
   .kpi-valor {

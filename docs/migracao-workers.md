@@ -26,7 +26,7 @@ milissegundos a qualquer momento.
   TypeScript; landing page pública; área logada em layout de painel (menu
   lateral, cards, gráficos); ordem: ponto → dashboard → registros; Jinja
   substituído por páginas estáticas + JS.
-- [ ] **Etapa 2 — Novas funcionalidades:** paginação da API de registros (10
+- [x] **Etapa 2 — Novas funcionalidades:** paginação da API de registros (10
   por página, mais recentes primeiro); filtro de mês aberto no mês atual;
   semanas reais de domingo a sábado, incluindo dias de meses vizinhos; KPIs de
   dia mais e menos lucrativo (lucro = ganhos − custos do dia).
@@ -116,6 +116,26 @@ DATABASE_URL="<connection string do Neon>" npm run redefinir-senha -- voce@email
 ```
 
 O script pede a senha duas vezes sem mostrá-la na tela.
+
+## Mudanças da Etapa 2 na API
+
+| Rota | Mudança |
+|---|---|
+| `GET /api/records?page=N` | Passa a ser paginada: 10 por página, ordenada por data, entrada e id (decrescente). Responde `{ items, page, per_page, total, total_pages }` em vez de uma lista. Página além da última: `items` vazio. `page` inválido: 400 |
+| `GET /api/dashboard` | `week` agora é o número da semana real (domingo a sábado) na lista `weeks` do próprio retorno, e pode incluir dias de meses vizinhos. Novos campos: `weeks`, `week`, `total_profit`, `most_profitable_day` e `least_profitable_day` (`date`, `weekday`, `earnings`, `costs`, `profit`; `null` sem turnos) e `profit` em `daily_earnings` |
+
+No painel, o filtro de mês abre no mês atual, e a tabela de registros ganhou
+paginação.
+
+### Banco
+
+`db/migrations/0002_indice_registros_por_data.sql` cria o índice usado pela
+listagem paginada. O container local aplica sozinho na criação do volume; para
+um volume já existente, ou no Neon antes do deploy:
+
+```bash
+psql "$DATABASE_URL" -f db/migrations/0002_indice_registros_por_data.sql
+```
 
 ## Rodando localmente
 
