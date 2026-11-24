@@ -14,7 +14,7 @@
       "binding": "HYPERDRIVE",
       // Substituir pelo id gerado com (cache desligado: o app lê logo depois de gravar):
       //   npx wrangler hyperdrive create ponto-entregador --caching-disabled --connection-string="<URL do Neon>"
-      "id": "00000000000000000000000000000000",
+      "id": "6e0d27537369415fb18a17c806fc44fb",
       // Banco usado pelo `wrangler dev` fora do Docker. No Docker, a variável
       // CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE substitui este valor.
       "localConnectionString": "postgresql://postgres:postgres@localhost:5433/ponto"
